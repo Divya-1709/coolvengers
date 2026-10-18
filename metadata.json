@@ -1,0 +1,6 @@
+{
+  "name": "Coolvengers Aircons - Ambassador Club & Payouts",
+  "description": "Ambassador Club referral and manual payout management portal for Coolvengers Aircons. Submit leads, track AC service milestones, and process auditable manual UPI/Bank payouts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
