@@ -213,28 +213,40 @@ export const HomePage: React.FC<Props> = ({
 
   const testimonials = [
     {
-      name: 'Karthikeyan Natarajan',
-      area: 'Madipakkam, Chennai',
+      name: 'Murali',
+      avatar: '/testimonials/murali.png',
       rating: 5,
-      date: 'Verified Customer · 2 days ago',
-      comment:
-        'Called Coolvengers for severe water leakage and jet pump wash on my Daikin 1.5T split AC. The technician arrived within 35 minutes, diagnosed a blocked drain pipe, and cleaned the cooling coils thoroughly. Cooling is back to 16°C like brand new!',
+      comment: 'The service from Coolvengers was quick and professional, highly recommend!',
     },
     {
-      name: 'Sangeetha Ramanathan',
-      area: 'Velachery, Chennai',
+      name: 'Anjali',
+      avatar: '/testimonials/anjali.png',
       rating: 5,
-      date: 'Verified Customer · 4 days ago',
-      comment:
-        'Very polite and professional technicians. Transparent with gas refilling rates, showed me the digital manifold gauge before and after filling R410A. Plus their Ambassador program paid my friend ₹100 for referring me. Outstanding service!',
+      comment: 'Expert technicians who fixed my AC in no time, great service!',
     },
     {
-      name: 'Arun Sundaram',
-      area: 'Thoraipakkam (OMR), Chennai',
+      name: 'Srithar',
+      avatar: '/testimonials/srithar.png',
       rating: 5,
-      date: 'Verified Customer · 1 week ago',
-      comment:
-        'Prompt installation of two new inverter split ACs with neat copper trunking. Zero mess left behind, reasonable pricing, and skilled technicians with proper safety gear. Coolvengers is by far the most reliable AC company in Chennai.',
+      comment: 'Very satisfied with their installation service, highly skilled team.',
+    },
+    {
+      name: 'Pooja',
+      avatar: '/testimonials/pooja.png',
+      rating: 5,
+      comment: 'Prompt response and excellent maintenance service, truly reliable!',
+    },
+    {
+      name: 'Krishna',
+      avatar: '/testimonials/krishna.png',
+      rating: 5,
+      comment: 'Their deep cleaning service made a huge difference, thank you!',
+    },
+    {
+      name: 'Ramya Sri',
+      avatar: '/testimonials/ramya_sri.png',
+      rating: 5,
+      comment: 'Fast and efficient repair service when I needed it most, thank you!',
     },
   ];
 
@@ -1156,34 +1168,35 @@ export const HomePage: React.FC<Props> = ({
         <div className="text-center max-w-xl mx-auto space-y-1">
           <h2 className="text-2xl font-black text-slate-900">What Chennai Customers Say</h2>
           <p className="text-xs sm:text-sm text-slate-600">
-            Real reviews from homeowners in Madipakkam, Velachery, and OMR.
+            Dedicated to quality service and excellence in every project.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {testimonials.map((t, idx) => (
             <motion.div
               key={idx}
               whileHover={{ y: -4 }}
-              className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between"
+              className="p-6 sm:p-7 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow"
             >
-              <div className="space-y-3">
-                <div className="flex items-center gap-1 text-amber-500">
-                  {Array.from({ length: t.rating }).map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  ))}
+              <div>
+                <div className="flex items-center gap-3.5 mb-4">
+                  <img
+                    src={t.avatar}
+                    alt={t.name}
+                    className="w-12 h-12 rounded-full object-cover shrink-0"
+                  />
+                  <div className="text-base font-semibold text-slate-800">{t.name}</div>
                 </div>
-                <p className="text-xs text-slate-600 italic leading-relaxed">
-                  &ldquo;{t.comment}&rdquo;
+                <p className="text-sm text-slate-600 leading-relaxed font-normal">
+                  {t.comment}
                 </p>
               </div>
 
-              <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
-                <div>
-                  <div className="text-xs font-bold text-slate-900">{t.name}</div>
-                  <div className="text-[11px] text-slate-500">{t.area}</div>
-                </div>
-                <div className="text-[10px] text-emerald-600 font-semibold">{t.date}</div>
+              <div className="pt-6 flex items-center gap-1.5 text-amber-400">
+                {Array.from({ length: t.rating }).map((_, i) => (
+                  <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                ))}
               </div>
             </motion.div>
           ))}

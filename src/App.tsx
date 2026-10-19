@@ -9,14 +9,15 @@ import {
   Phone,
   Mail,
   MapPin,
-  Clock,
   ShieldCheck,
+  LayoutDashboard,
 } from 'lucide-react';
 import { User, ReferralLead } from './types/index.js';
 import { api } from './services/api.js';
 import { Header } from './components/Header.js';
 import { HomePage } from './components/HomePage.js';
 import { AmbassadorDashboard } from './components/AmbassadorDashboard.js';
+import { AdminDashboard } from './components/AdminDashboard.js';
 import { AdminPayoutManagement } from './components/AdminPayoutManagement.js';
 import { AdminLeadVerification } from './components/AdminLeadVerification.js';
 import { PayoutAuditHistory } from './components/PayoutAuditHistory.js';
@@ -29,7 +30,7 @@ import { LoginModal } from './components/LoginModal.js';
 import { CoolvengersLogo } from './components/CoolvengersLogo.js';
 
 type ViewMode = 'HOME' | 'PORTAL';
-type AdminTab = 'PAYOUTS' | 'VERIFICATION' | 'AUDIT_LEDGER' | 'AMBASSADORS' | 'SYSTEM_LOGS';
+type AdminTab = 'DASHBOARD' | 'PAYOUTS' | 'VERIFICATION' | 'AUDIT_LEDGER' | 'AMBASSADORS' | 'SYSTEM_LOGS';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -39,7 +40,7 @@ export default function App() {
   const [currentView, setCurrentView] = useState<ViewMode>('HOME');
 
   // Admin active tab
-  const [adminTab, setAdminTab] = useState<AdminTab>('PAYOUTS');
+  const [adminTab, setAdminTab] = useState<AdminTab>('DASHBOARD');
 
   // Modals
   const [showSubmitModal, setShowSubmitModal] = useState(false);
@@ -96,7 +97,7 @@ export default function App() {
     setCurrentUser(newUser);
     setCurrentView('PORTAL');
     if (newUser.role === 'SUPER_ADMIN') {
-      setAdminTab('PAYOUTS');
+      setAdminTab('DASHBOARD');
     }
     setRefreshKey(prev => prev + 1);
   };
@@ -144,6 +145,18 @@ export default function App() {
               </button>
             </div>
             <nav className="flex items-center space-x-1 sm:space-x-2 overflow-x-auto py-2">
+              <button
+                onClick={() => setAdminTab('DASHBOARD')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-1.5 cursor-pointer ${
+                  adminTab === 'DASHBOARD'
+                    ? 'bg-slate-100 text-slate-900 font-bold border border-slate-300/80 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                }`}
+              >
+                <LayoutDashboard className="w-3.5 h-3.5 text-sky-600" />
+                Operations Dashboard
+              </button>
+
               <button
                 onClick={() => setAdminTab('PAYOUTS')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-1.5 cursor-pointer ${
@@ -248,6 +261,15 @@ export default function App() {
             {/* Super Admin View */}
             {currentUser && currentUser.role === 'SUPER_ADMIN' && (
               <>
+                {adminTab === 'DASHBOARD' && (
+                  <AdminDashboard
+                    key={`dash_${refreshKey}`}
+                    onSelectLead={lead => setSelectedLead(lead)}
+                    onNavigateTab={tab => setAdminTab(tab)}
+                    onRefresh={() => setRefreshKey(prev => prev + 1)}
+                  />
+                )}
+
                 {adminTab === 'PAYOUTS' && (
                   <AdminPayoutManagement
                     key={`payout_${refreshKey}`}
