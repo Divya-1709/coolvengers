@@ -17,7 +17,7 @@ interface Props {
   onLogout?: () => void;
 }
 
-type NavItem = 'home' | 'services' | 'portal' | 'book-service';
+type NavItem = 'home' | 'explore' | 'about' | 'services' | 'reviews' | 'gallery' | 'contact' | 'portal';
 
 export const Header: React.FC<Props> = ({
   currentView,
@@ -32,10 +32,15 @@ export const Header: React.FC<Props> = ({
   const [demoUsers, setDemoUsers] = useState<User[]>([]);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showExploreDropdown, setShowExploreDropdown] = useState(false);
   const [activeNav, setActiveNav] = useState<NavItem>(() => {
     if (typeof window !== 'undefined') {
-      if (window.location.hash === '#services') return 'services';
-      if (window.location.hash === '#book-service') return 'book-service';
+      const hash = window.location.hash;
+      if (hash === '#about') return 'about';
+      if (hash === '#services' || hash === '#installation' || hash === '#maintenance' || hash === '#repair') return 'services';
+      if (hash === '#reviews') return 'reviews';
+      if (hash === '#gallery') return 'gallery';
+      if (hash === '#contact' || hash === '#book-service') return 'contact';
     }
     return currentView === 'PORTAL' ? 'portal' : 'home';
   });
@@ -43,6 +48,7 @@ export const Header: React.FC<Props> = ({
   const isClickingRef = useRef(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const exploreRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     api.getDemoUsers().then(res => setDemoUsers(res.users)).catch(console.error);
@@ -55,6 +61,9 @@ export const Header: React.FC<Props> = ({
       }
       if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target as Node)) {
         setShowMobileMenu(false);
+      }
+      if (exploreRef.current && !exploreRef.current.contains(e.target as Node)) {
+        setShowExploreDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleOutsideClick);
@@ -72,17 +81,23 @@ export const Header: React.FC<Props> = ({
       if (isClickingRef.current) return;
       if (currentView !== 'HOME') return;
 
-      const scrollPos = window.scrollY + 140;
+      const scrollPos = window.scrollY + 160;
+      const contactEl = document.getElementById('contact') || document.getElementById('book-service');
+      const reviewsEl = document.getElementById('reviews');
+      const galleryEl = document.getElementById('gallery');
       const servicesEl = document.getElementById('services');
-      const bookServiceEl = document.getElementById('book-service');
+      const aboutEl = document.getElementById('about');
 
-      const bookServiceTop = bookServiceEl ? bookServiceEl.offsetTop : Infinity;
-      const servicesTop = servicesEl ? servicesEl.offsetTop : Infinity;
-
-      if (scrollPos >= bookServiceTop - 60) {
-        setActiveNav('book-service');
-      } else if (scrollPos >= servicesTop - 60) {
+      if (contactEl && scrollPos >= contactEl.offsetTop - 80) {
+        setActiveNav('contact');
+      } else if (reviewsEl && scrollPos >= reviewsEl.offsetTop - 80) {
+        setActiveNav('reviews');
+      } else if (galleryEl && scrollPos >= galleryEl.offsetTop - 80) {
+        setActiveNav('gallery');
+      } else if (servicesEl && scrollPos >= servicesEl.offsetTop - 80) {
         setActiveNav('services');
+      } else if (aboutEl && scrollPos >= aboutEl.offsetTop - 80) {
+        setActiveNav('about');
       } else {
         setActiveNav('home');
       }
@@ -93,7 +108,7 @@ export const Header: React.FC<Props> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [currentView]);
 
-  const performScroll = (target: 'home' | 'services' | 'book-service') => {
+  const performScroll = (target: NavItem | string) => {
     if (target === 'home') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       if (window.location.hash) {
@@ -101,44 +116,60 @@ export const Header: React.FC<Props> = ({
           history.replaceState(null, '', window.location.pathname);
         } catch {}
       }
-    } else if (target === 'services') {
-      const el = document.getElementById('services');
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth' });
-        try {
-          history.replaceState(null, '', '#services');
-        } catch {}
-      }
-    } else if (target === 'book-service') {
-      const el = document.getElementById('book-service');
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth' });
-        try {
-          history.replaceState(null, '', '#book-service');
-        } catch {}
-      }
+      return;
+    }
+
+    const elementId =
+      target === 'contact' ? 'contact' :
+      target === 'about' ? 'about' :
+      target === 'reviews' ? 'reviews' :
+      target === 'gallery' ? 'gallery' :
+      target === 'services' ? 'services' :
+      target.replace('#', '');
+
+    const el = document.getElementById(elementId) || (elementId === 'contact' ? document.getElementById('book-service') : null);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+      try {
+        history.replaceState(null, '', `#${elementId}`);
+      } catch {}
     }
   };
 
-  const handleNavClick = (target: NavItem) => {
-    setActiveNav(target);
+  const handleNavClick = (target: NavItem | string, serviceCategory?: string) => {
+    setShowExploreDropdown(false);
     setShowMobileMenu(false);
+
+    if (target === 'portal') {
+      setActiveNav('portal');
+      onNavigate('PORTAL');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    const navKey: NavItem =
+      target === 'about' ? 'about' :
+      target === 'reviews' ? 'reviews' :
+      target === 'gallery' ? 'gallery' :
+      target === 'contact' ? 'contact' :
+      target === 'services' || target === 'installation' || target === 'maintenance' || target === 'repair' ? 'services' :
+      'home';
+
+    setActiveNav(navKey);
     isClickingRef.current = true;
     setTimeout(() => {
       isClickingRef.current = false;
     }, 850);
 
-    if (target === 'portal') {
-      onNavigate('PORTAL');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
+    if (serviceCategory) {
+      window.dispatchEvent(new CustomEvent('select-service-category', { detail: { category: serviceCategory } }));
     }
 
     if (currentView !== 'HOME') {
       onNavigate('HOME');
       setTimeout(() => {
         performScroll(target);
-      }, 80);
+      }, 100);
     } else {
       performScroll(target);
     }
@@ -166,7 +197,7 @@ export const Header: React.FC<Props> = ({
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-4 sm:gap-8">
+        <div className="flex items-center justify-between h-16 gap-3 sm:gap-6">
           {/* Zone 1: Brand Wordmark with Coolvengers Logo */}
           <button
             onClick={() => handleNavClick('home')}
@@ -175,8 +206,8 @@ export const Header: React.FC<Props> = ({
             <CoolvengersLogo size="md" animated={true} />
           </button>
 
-          {/* Zone 2: Navigation Links with Active Blue Color Indicator */}
-          <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-600">
+          {/* Zone 2: Navigation Links matching coolvengers.in */}
+          <nav className="hidden lg:flex items-center gap-5 text-xs font-semibold text-slate-600">
             <button
               onClick={() => handleNavClick('home')}
               className={getNavClass('home')}
@@ -184,11 +215,62 @@ export const Header: React.FC<Props> = ({
               Home
             </button>
 
+            {/* Explore Dropdown */}
+            <div className="relative" ref={exploreRef}>
+              <button
+                onClick={() => setShowExploreDropdown(!showExploreDropdown)}
+                className={`flex items-center gap-1 ${getNavClass('services')}`}
+              >
+                <span>Explore</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showExploreDropdown ? 'rotate-180 text-sky-600' : ''}`} />
+              </button>
+
+              {showExploreDropdown && (
+                <div className="absolute top-full left-0 mt-2 w-56 rounded-2xl bg-white border border-slate-200 shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <button
+                    onClick={() => handleNavClick('services', 'installation')}
+                    className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 hover:bg-sky-50 hover:text-sky-700 flex items-center justify-between transition-colors cursor-pointer"
+                  >
+                    <span>AC Installation</span>
+                    <span className="text-[10px] font-bold text-sky-600 bg-sky-100/70 px-1.5 py-0.5 rounded">Split & Window</span>
+                  </button>
+                  <button
+                    onClick={() => handleNavClick('services', 'maintenance')}
+                    className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 hover:bg-sky-50 hover:text-sky-700 flex items-center justify-between transition-colors cursor-pointer"
+                  >
+                    <span>AC Maintenance</span>
+                    <span className="text-[10px] font-bold text-sky-600 bg-sky-100/70 px-1.5 py-0.5 rounded">Jet Wash & Gas</span>
+                  </button>
+                  <button
+                    onClick={() => handleNavClick('services', 'repair')}
+                    className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 hover:bg-sky-50 hover:text-sky-700 flex items-center justify-between transition-colors cursor-pointer"
+                  >
+                    <span>AC Repair</span>
+                    <span className="text-[10px] font-bold text-sky-600 bg-sky-100/70 px-1.5 py-0.5 rounded">PCB & Leakage</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
             <button
-              onClick={() => handleNavClick('services')}
-              className={getNavClass('services')}
+              onClick={() => handleNavClick('about')}
+              className={getNavClass('about')}
             >
-              Services
+              About Us
+            </button>
+
+            <button
+              onClick={() => handleNavClick('reviews')}
+              className={getNavClass('reviews')}
+            >
+              Reviews
+            </button>
+
+            <button
+              onClick={() => handleNavClick('gallery')}
+              className={getNavClass('gallery')}
+            >
+              Gallery
             </button>
 
             <button
@@ -211,10 +293,10 @@ export const Header: React.FC<Props> = ({
 
             {currentUser?.role !== 'SUPER_ADMIN' && (
               <button
-                onClick={() => handleNavClick('book-service')}
-                className={getNavClass('book-service')}
+                onClick={() => handleNavClick('contact')}
+                className="px-3.5 py-1.5 rounded-lg bg-sky-900 hover:bg-sky-800 text-white font-bold text-xs transition-colors cursor-pointer shadow-xs ml-1"
               >
-                Book Service
+                Contact Us
               </button>
             )}
           </nav>
@@ -394,16 +476,70 @@ export const Header: React.FC<Props> = ({
               {activeNav === 'home' && <span className="w-2 h-2 rounded-full bg-sky-600" />}
             </button>
 
+            {/* Explore Section in Mobile */}
+            <div className="py-1 px-1">
+              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
+                Explore Services
+              </div>
+              <div className="grid grid-cols-1 gap-1 pl-2">
+                <button
+                  onClick={() => handleNavClick('services', 'installation')}
+                  className="w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-sky-50 hover:text-sky-700 flex items-center justify-between"
+                >
+                  <span>AC Installation</span>
+                  <span className="text-[10px] text-sky-600 font-mono">Split / Window</span>
+                </button>
+                <button
+                  onClick={() => handleNavClick('services', 'maintenance')}
+                  className="w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-sky-50 hover:text-sky-700 flex items-center justify-between"
+                >
+                  <span>AC Maintenance</span>
+                  <span className="text-[10px] text-sky-600 font-mono">Jet Wash / Gas</span>
+                </button>
+                <button
+                  onClick={() => handleNavClick('services', 'repair')}
+                  className="w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-sky-50 hover:text-sky-700 flex items-center justify-between"
+                >
+                  <span>AC Repair</span>
+                  <span className="text-[10px] text-sky-600 font-mono">PCB / Leakage</span>
+                </button>
+              </div>
+            </div>
+
             <button
-              onClick={() => handleNavClick('services')}
+              onClick={() => handleNavClick('about')}
               className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                activeNav === 'services'
+                activeNav === 'about'
                   ? 'bg-sky-50 text-sky-600 font-bold border border-sky-100'
                   : 'text-slate-700 hover:bg-slate-50'
               }`}
             >
-              <span>Services</span>
-              {activeNav === 'services' && <span className="w-2 h-2 rounded-full bg-sky-600" />}
+              <span>About Us</span>
+              {activeNav === 'about' && <span className="w-2 h-2 rounded-full bg-sky-600" />}
+            </button>
+
+            <button
+              onClick={() => handleNavClick('reviews')}
+              className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                activeNav === 'reviews'
+                  ? 'bg-sky-50 text-sky-600 font-bold border border-sky-100'
+                  : 'text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <span>Reviews</span>
+              {activeNav === 'reviews' && <span className="w-2 h-2 rounded-full bg-sky-600" />}
+            </button>
+
+            <button
+              onClick={() => handleNavClick('gallery')}
+              className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                activeNav === 'gallery'
+                  ? 'bg-sky-50 text-sky-600 font-bold border border-sky-100'
+                  : 'text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <span>Work Gallery</span>
+              {activeNav === 'gallery' && <span className="w-2 h-2 rounded-full bg-sky-600" />}
             </button>
 
             <button
@@ -431,15 +567,10 @@ export const Header: React.FC<Props> = ({
 
             {currentUser?.role !== 'SUPER_ADMIN' && (
               <button
-                onClick={() => handleNavClick('book-service')}
-                className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                  activeNav === 'book-service'
-                    ? 'bg-sky-50 text-sky-600 font-bold border border-sky-100'
-                    : 'text-slate-700 hover:bg-slate-50'
-                }`}
+                onClick={() => handleNavClick('contact')}
+                className="w-full text-center py-2.5 px-3 rounded-lg bg-sky-900 text-white font-bold text-sm shadow-xs cursor-pointer mt-1"
               >
-                <span>Book Service</span>
-                {activeNav === 'book-service' && <span className="w-2 h-2 rounded-full bg-sky-600" />}
+                Contact Us / Book Visit
               </button>
             )}
           </div>

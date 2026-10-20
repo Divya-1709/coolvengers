@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Wind,
@@ -28,6 +28,12 @@ import {
   ChevronDown,
   HelpCircle,
   ThermometerSnowflake,
+  Calendar,
+  MessageCircle,
+  Camera,
+  Layers,
+  Settings,
+  Flame,
   ShieldAlert,
 } from 'lucide-react';
 import { User } from '../types/index.js';
@@ -42,6 +48,25 @@ interface Props {
   onLogout: () => void;
 }
 
+type ServiceCategory = 'all' | 'installation' | 'maintenance' | 'repair';
+
+interface ServiceItem {
+  id: string;
+  category: 'installation' | 'maintenance' | 'repair';
+  title: string;
+  tagline: string;
+  price: string;
+  duration: string;
+  rating: string;
+  badge: string;
+  caption: string;
+  image: string;
+  iconType: 'wrench' | 'droplet' | 'gauge' | 'cpu' | 'shield' | 'fan';
+  features: string[];
+  idealFor: string;
+  popular?: boolean;
+}
+
 export const HomePage: React.FC<Props> = ({
   currentUser,
   onOpenLogin,
@@ -50,10 +75,14 @@ export const HomePage: React.FC<Props> = ({
   onOpenSubmitLead,
   onLogout,
 }) => {
+  // Service Category Filter State
+  const [selectedCategory, setSelectedCategory] = useState<ServiceCategory>('all');
+  const [selectedServiceIndex, setSelectedServiceIndex] = useState<number>(0);
+
   // Booking Form State
   const [bookingName, setBookingName] = useState('');
   const [bookingPhone, setBookingPhone] = useState('');
-  const [bookingService, setBookingService] = useState('AC Deep Cleaning (Jet Pump)');
+  const [bookingService, setBookingService] = useState('Split AC Installation (Popular)');
   const [bookingArea, setBookingArea] = useState('Madipakkam');
   const [bookingDate, setBookingDate] = useState('');
   const [bookingNotes, setBookingNotes] = useState('');
@@ -67,8 +96,8 @@ export const HomePage: React.FC<Props> = ({
   // Interactive Referral Simulator
   const [referralCount, setReferralCount] = useState<number>(5);
 
-  // Active Service Tab in Explorer
-  const [activeServiceTab, setActiveServiceTab] = useState<number>(0);
+  // Work Gallery Filter State
+  const [galleryFilter, setGalleryFilter] = useState<'all' | 'installation' | 'jetwash' | 'repair'>('all');
 
   // FAQ Accordion State
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
@@ -76,114 +105,268 @@ export const HomePage: React.FC<Props> = ({
   const heroImage = '/src/assets/images/coolvengers_home_hero_1792133261520.jpg';
   const technicianImage = '/src/assets/images/coolvengers_technician_work_1792133261366.jpg';
 
+  // Listen to custom navigation events from Header (e.g. Explore dropdown)
+  useEffect(() => {
+    const handleSelectCategory = (e: Event) => {
+      const customEvent = e as CustomEvent<{ category?: ServiceCategory }>;
+      if (customEvent.detail?.category) {
+        setSelectedCategory(customEvent.detail.category);
+        const srvEl = document.getElementById('services');
+        if (srvEl) {
+          srvEl.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    };
+    window.addEventListener('select-service-category', handleSelectCategory);
+    return () => window.removeEventListener('select-service-category', handleSelectCategory);
+  }, []);
+
   const handleBookingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!bookingName.trim() || !bookingPhone.trim()) return;
     setBookingSubmitted(true);
   };
 
-  const services = [
+  // Comprehensive Services Catalog structured across the 3 core categories from coolvengers.in
+  const allServices: ServiceItem[] = [
+    // --- 1. AC Installation Category ---
     {
-      id: 'cleaning',
-      title: 'Deep Cleaning & Jet Pump Wash',
-      tagline: 'Restore 100% ice-cold airflow & eradicate harmful bacteria',
-      price: '₹499',
-      duration: '45 mins',
-      rating: '4.9 ★ (1,420+)',
-      icon: <Droplets className="w-6 h-6 text-sky-600" />,
-      image: '/service_deep_cleaning.jpg',
-      badge: 'High-Pressure Hydro Jet Wash',
-      caption: 'Deep evaporator fin wash & mold purge with zero wall splatter.',
+      id: 'split-installation',
+      category: 'installation',
+      title: 'Split AC Installation',
+      popular: true,
+      tagline: 'Professional installation of split AC units with precision bracket mounting & vacuuming',
+      price: '₹1,199',
+      duration: '60-90 mins',
+      rating: '5.0 ★ (650+)',
+      badge: 'Popular Service',
+      caption: 'Precision spirit-level wall mounting, vacuuming, and leak-proof flare joints.',
+      image: '/svc_split_install.jpg',
+      iconType: 'wrench',
       features: [
-        'High-pressure jet pump wash on cooling coils',
-        'Anti-bacterial active foam sanitization',
-        'Drain pipe unclogging & tray mold purge',
-        'Blower fan deep cleaning for maximum CFM',
-        'Outdoor unit fin wash and dust extraction',
+        'Specialized in all split & inverter air conditioners',
+        'Laser spirit-level indoor and outdoor bracket mounting',
+        'Precision copper pipe flaring & nitrogen vacuuming',
+        'Neat wall core cutting & dust-free sleeve pass-through',
+        'Tested cooling drop and ampere draw verification',
+        'Satisfaction guaranteed with 30-day workmanship warranty',
       ],
-      idealFor: 'Low cooling, foul smell, or AC serviced >6 months ago',
+      idealFor: 'New AC purchases, home shifting, split unit replacements',
     },
     {
-      id: 'gas',
-      title: 'Gas Refilling & Leakage Arrest',
-      tagline: 'Guaranteed leak detection with optimal PSI calibration',
+      id: 'window-installation',
+      category: 'installation',
+      popular: true,
+      title: 'Window AC Installation',
+      tagline: 'Seamless installation of window ACs with heavy-duty framing & air-seal protection',
+      price: '₹799',
+      duration: '45-60 mins',
+      rating: '4.9 ★ (420+)',
+      badge: 'Popular Service',
+      caption: 'Heavy-duty vibration dampening with weather-tight perimeter sealing.',
+      image: '/svc_window_install.jpg',
+      iconType: 'wrench',
+      features: [
+        'Experienced in all window units (0.75 Ton to 2.0 Ton)',
+        'Safety-first reinforced bracket mounting and leveling',
+        'Weatherproof silicone sealing to eliminate hot draft & rainwater leaks',
+        'Proper downward angle tilt for smooth condensate water drainage',
+        'Vibration-dampener rubber pads included for whisper-quiet running',
+        'Quality assurance & tested 100% cooling performance',
+      ],
+      idealFor: 'Apartments & rooms with dedicated window AC masonry slots',
+    },
+    {
+      id: 'setup-consultation',
+      category: 'installation',
+      title: 'AC Setup Consultation',
+      tagline: 'Expert consulting for optimal AC setup, heat-load room tonnage, and airflow route',
+      price: 'Free / Complimentary',
+      duration: '30 mins',
+      rating: '5.0 ★ (280+)',
+      badge: 'Energy-Efficient Architecture',
+      caption: 'Room heat-load calculation and piping route optimization to slash power bills.',
+      image: '/svc_consultation.jpg',
+      iconType: 'fan',
+      features: [
+        'Personalized recommendations tailored to room layout & sunlight exposure',
+        'Accurate BTU & tonnage calculation (prevents overworking compressor)',
+        'Energy-efficient 5-star inverter vs non-inverter options comparison',
+        'Minimal piping route planning to maximize COP cooling efficiency',
+        'Free initial consultation for residential homes & commercial spaces',
+        'Expert guidance on electrical wiring and voltage stabilizer sizing',
+      ],
+      idealFor: 'New home buyers, interior designers, commercial offices, villa owners',
+    },
+    {
+      id: 'installation-maintenance',
+      category: 'installation',
+      title: 'AC Installation Maintenance',
+      tagline: 'Comprehensive post-installation inspection, alignment checks & compressor health',
+      price: '₹399',
+      duration: '30 mins',
+      rating: '4.9 ★ (190+)',
+      badge: 'Preventive Maintenance Plan',
+      caption: 'Nut-bolt tightness, bracket integrity, and initial gas stability check.',
+      image: '/service_installation_maintenance.jpg',
+      iconType: 'shield',
+      features: [
+        'Preventive maintenance plans protecting factory warranties',
+        'Outdoor unit bracket load & vibration inspection',
+        'Flare nut torque tightness check and micro-leak sniff test',
+        'Condensate drain pipe slope and free-flow test',
+        'Compressor starting voltage & running ampere benchmark check',
+        'Affordable pricing with detailed service check certificate',
+      ],
+      idealFor: 'ACs installed within the last 1 to 6 months',
+    },
+
+    // --- 2. AC Maintenance Category ---
+    {
+      id: 'regular-servicing',
+      category: 'maintenance',
+      title: 'Regular AC Servicing',
+      tagline: 'Scheduled AC servicing for maximum cooling efficiency and lower electricity consumption',
+      price: '₹349',
+      duration: '40 mins',
+      rating: '4.9 ★ (1,150+)',
+      badge: '18-Point Health Checklist',
+      caption: 'Dust removal, electrical inspection, and air filter sanitization.',
+      image: '/svc_regular_service.jpg',
+      iconType: 'droplet',
+      features: [
+        'Comprehensive 18-point checks covering electrical & refrigeration cycle',
+        'Extends AC compressor and blower motor operational lifespan',
+        'Air filter dry and wet chemical sanitization',
+        'Indoor cooling coil dry brushing & antibacterial spray',
+        'Condensate water drain pan flush and clearing',
+        'Satisfaction guaranteed with noticeably cooler room output',
+      ],
+      idealFor: 'Seasonal tune-up, minor dust accumulation, maintaining efficiency',
+    },
+    {
+      id: 'gas-refill',
+      category: 'maintenance',
+      title: 'Gas Refill & Leakage Arrest',
+      popular: true,
+      tagline: 'Professional gas refilling services with certified technicians & leak detection',
       price: '₹1,499',
       duration: '60 mins',
       rating: '4.9 ★ (890+)',
-      icon: <Gauge className="w-6 h-6 text-sky-600" />,
-      image: '/service_gas_refill.jpg',
       badge: 'Digital Pressure Calibration',
-      caption: '100% virgin refrigerant refilled with 30-day cooling warranty.',
+      caption: '100% virgin sealed gas recharge calibrated with digital manifold gauges.',
+      image: '/svc_gas_refill.jpg',
+      iconType: 'gauge',
       features: [
-        'Nitrogen pressure testing for micro-pinhole leaks',
-        'Precision copper pipe brazing & valve replacement',
-        'Genuine 100% pure R32, R410A, or R22 refrigerant',
-        'Digital manifold pressure gauge calibration',
-        '30-Day cooling warranty on refilled gas',
+        'Certified HVAC technicians with nitrogen pressure testing kits',
+        'Quick turnaround with pinpoint ultrasonic/soap bubble leak detection',
+        'High-temperature oxygen-acetylene copper pipe brazing & valve replacement',
+        '100% genuine sealed virgin R32, R410A, or R22 refrigerant',
+        'Digital manifold pressure gauge calibration to exact factory PSI',
+        '30-Day cooling warranty on all refilled refrigerant',
       ],
-      idealFor: 'AC blowing normal/warm air, ice forming on indoor pipes',
+      idealFor: 'AC blowing normal/warm air, ice forming on indoor copper coils',
     },
     {
-      id: 'installation',
-      title: 'AC Installation & Relocation',
-      tagline: 'Vibration-free heavy-duty bracket mounting & pipe flaring',
-      price: '₹1,199',
-      duration: '90 mins',
-      rating: '5.0 ★ (650+)',
-      icon: <Wrench className="w-6 h-6 text-sky-600" />,
-      image: '/service_installation.jpg',
-      badge: 'Precision Spirit-Level Mounting',
-      caption: 'Heavy-duty wall brackets with leak-free copper flare & vacuuming.',
+      id: 'deep-cleaning',
+      category: 'maintenance',
+      title: 'Deep Cleaning (Multi-Stage)',
+      tagline: 'Thorough cleaning for AC units eliminating trapped dust, allergens, and odors',
+      price: '₹449',
+      duration: '50 mins',
+      rating: '4.9 ★ (1,420+)',
+      badge: 'Anti-Bacterial Active Foam',
+      caption: 'Deep evaporator fin wash & mold purge with zero wall splatter.',
+      image: '/svc_deep_cleaning.jpg',
+      iconType: 'droplet',
       features: [
-        'Split & Inverter AC level bracket mounting',
-        'Precision copper pipe flaring & vacuuming',
-        'Core cutting for neat wall passthrough',
-        'Safe uninstallation with refrigerant lock-in',
-        'Outdoor unit vibration dampener pads included',
+        'Eliminates dust, pollen, pet dander, and respiratory allergens',
+        'Restores healthy indoor air quality with anti-bacterial active foam',
+        'Deep evaporator fin wash & mold purge with protective service cover',
+        'Blower fan wheel deep scrub for maximum cubic-feet-per-minute (CFM)',
+        'Outdoor unit coil wash and dust extraction',
+        'Affordable rates with proven reduction in room cooling time',
       ],
-      idealFor: 'New AC purchase, home shifting, or office relocations',
+      idealFor: 'Homes with kids/seniors, foul smell, or AC serviced >6 months ago',
     },
     {
-      id: 'pcb',
+      id: 'jet-wash',
+      category: 'maintenance',
+      title: 'Jet Wash (Hydro Jet Pump Wash)',
+      popular: true,
+      tagline: 'High-pressure cleaning for ACs removing stubborn dirt from deep coils',
+      price: '₹499',
+      duration: '45-60 mins',
+      rating: '5.0 ★ (2,100+)',
+      badge: '120-Bar Hydro Jet Cleaning',
+      caption: 'High-pressure hydro cleaning with zero wall splatter service jacket.',
+      image: '/svc_jet_wash.jpg',
+      iconType: 'droplet',
+      features: [
+        'Removes stubborn encrusted dirt, mud, and lint from deep coil fins',
+        'Improves cooling efficiency by up to 35% within 10 minutes of operation',
+        'Safe for all AC types with custom waterproof drain jacket',
+        'Unclogs choked internal drain trays & discharge pipes completely',
+        'Outdoor condenser unit power wash for rapid heat dissipation',
+        'Delivers crisp, hospital-grade fresh mountain-chilled breeze',
+      ],
+      idealFor: 'Low cooling, slow room pull-down, heavy dust buildup, high power bills',
+    },
+
+    // --- 3. AC Repair Category ---
+    {
+      id: 'pcb-repair',
+      category: 'repair',
+      popular: true,
       title: 'Diagnostics & Inverter PCB Repair',
-      tagline: 'Microcontroller & sensor repairs by circuit board specialists',
-      price: '₹299',
-      duration: '30 mins inspection',
+      tagline: 'Swift repairs for your AC units by circuit board specialists and HVAC engineers',
+      price: '₹299 inspection',
+      duration: '30-45 mins',
       rating: '4.8 ★ (410+)',
-      icon: <Cpu className="w-6 h-6 text-sky-600" />,
-      image: '/service_pcb_repair.jpg',
-      badge: 'Circuit Board & Multimeter Specialist',
+      badge: 'Micro-Soldering Specialist',
       caption: 'Inverter motherboard diagnostics, sensor testing & micro-soldering.',
+      image: '/svc_pcb_repair.jpg',
+      iconType: 'cpu',
       features: [
-        'Full error-code diagnostics on all brands',
-        'Inverter PCB motherboard repair & soldering',
-        'Compressor starting capacitor & relay check',
-        'Thermistor & ambient temperature sensor repair',
-        'Display panel & remote sensor replacement',
+        'Clear explanations and cost-effective solutions for all PCB issues',
+        'Full error-code diagnostics on Daikin, Voltas, LG, Blue Star, Carrier, Lloyd, etc.',
+        'Inverter PCB motherboard repair, IGBT module & capacitor micro-soldering',
+        'Warranty on all replaced electronics and microchips (90-day coverage)',
+        'Extends unit lifespan without having to replace entire outdoor machine',
+        'Satisfaction guaranteed by certified electronic HVAC technicians',
       ],
-      idealFor: 'AC not turning on, error codes (E1, E6, F3), MCB tripping',
+      idealFor: 'AC not turning on, error codes (E1, E6, F3, CH05), MCB tripping',
     },
     {
-      id: 'amc',
-      title: 'Annual Maintenance Contract (AMC)',
-      tagline: 'Year-round zero-breakdown peace of mind with 3 free services',
-      price: '₹2,199 / yr',
-      duration: 'Comprehensive',
-      rating: '5.0 ★ (310+)',
-      icon: <ShieldCheck className="w-6 h-6 text-sky-600" />,
-      image: '/service_amc.jpg',
-      badge: 'Year-Round Zero Breakdown',
-      caption: '3 comprehensive jet wash services + unlimited free breakdown visits.',
+      id: 'swift-repairs',
+      category: 'repair',
+      title: 'Swift AC Breakdown Repair',
+      tagline: 'Emergency doorstep troubleshooting of compressors, fan motors, sensors & leaks',
+      price: 'Upfront Quote',
+      duration: 'Under 45 mins',
+      rating: '4.9 ★ (730+)',
+      badge: 'Same-Day Doorstep Fix',
+      caption: 'Rapid component replacement with factory-genuine parts in technician kits.',
+      image: '/svc_breakdown_repair.jpg',
+      iconType: 'wrench',
       features: [
-        '3 Scheduled comprehensive jet pump cleanings per year',
-        'Unlimited free breakdown & repair visits',
-        'Priority 30-minute technician dispatch',
-        '10% discount on all replacement spare parts',
-        'Dedicated senior HVAC technician assigned',
+        '100% genuine factory starting capacitors, relays, and thermistors in stock',
+        'Indoor blower motor and outdoor fan motor bearing replacement',
+        'Indoor water dripping resolution with pipe realignment and unblocking',
+        'Magnetic contactor and 4-way reversing valve repair',
+        'Clear upfront transparent estimates before technician turns a screwdriver',
+        'Professional care with 30-day follow-up guarantee on all work done',
       ],
-      idealFor: 'Homes, villas, and commercial offices seeking zero downtime',
+      idealFor: 'Rattling noises, sudden cooling cutoff, burning smell, water leaking inside',
     },
   ];
+
+  // Filtered services list based on category tab
+  const filteredServices = selectedCategory === 'all'
+    ? allServices
+    : allServices.filter(s => s.category === selectedCategory);
+
+  const activeService = filteredServices[selectedServiceIndex] || filteredServices[0] || allServices[0];
 
   const localities = [
     'Madipakkam',
@@ -203,61 +386,112 @@ export const HomePage: React.FC<Props> = ({
   ];
 
   const liveTickers = [
-    '🔔 Arun K. in Madipakkam booked Jet Pump Deep Cleaning · 3m ago',
-    '💰 Priya S. earned ₹100 referral reward for 2-ton AC job · 8m ago',
-    '⚡ Karthik R. in Velachery booked Gas Leakage Arrest · 14m ago',
+    '🔔 Arun K. in Madipakkam booked Jet Wash High-Pressure Cleaning · 3m ago',
+    '💰 Priya S. earned ₹100 referral reward for 2-ton Split AC job · 8m ago',
+    '⚡ Karthik R. in Velachery booked Gas Leakage Arrest & R32 Top-up · 14m ago',
     '🎉 Ambassador Gokul reached Gold Tier (₹2,500 total earned) · 22m ago',
-    '❄️ 100% Genuine R32 gas refilled in Thoraipakkam · 31m ago',
-    '🛡️ Sangeetha M. subscribed to Coolvengers Annual AMC · 45m ago',
+    '❄️ 100% Genuine R410A gas refilled in Thoraipakkam · 31m ago',
+    '🛡️ Sangeetha M. booked Split AC Installation in Pallikaranai · 45m ago',
   ];
 
+  // Exact reviews from coolvengers.in with their avatar paths
   const testimonials = [
     {
       name: 'Murali',
       avatar: '/testimonials/murali.png',
+      location: 'Madipakkam, Chennai',
       rating: 5,
       comment: 'The service from Coolvengers was quick and professional, highly recommend!',
     },
     {
       name: 'Anjali',
       avatar: '/testimonials/anjali.png',
+      location: 'Velachery, Chennai',
       rating: 5,
       comment: 'Expert technicians who fixed my AC in no time, great service!',
     },
     {
       name: 'Srithar',
       avatar: '/testimonials/srithar.png',
+      location: 'Pallikaranai, Chennai',
       rating: 5,
       comment: 'Very satisfied with their installation service, highly skilled team.',
     },
     {
       name: 'Pooja',
       avatar: '/testimonials/pooja.png',
+      location: 'Perungudi, Chennai',
       rating: 5,
       comment: 'Prompt response and excellent maintenance service, truly reliable!',
     },
     {
       name: 'Krishna',
       avatar: '/testimonials/krishna.png',
+      location: 'Thoraipakkam (OMR), Chennai',
       rating: 5,
       comment: 'Their deep cleaning service made a huge difference, thank you!',
     },
     {
       name: 'Ramya Sri',
       avatar: '/testimonials/ramya_sri.png',
+      location: 'Medavakkam, Chennai',
       rating: 5,
       comment: 'Fast and efficient repair service when I needed it most, thank you!',
     },
   ];
 
+  // Gallery items for work showcase
+  const galleryItems = [
+    {
+      title: 'Split AC Wall Bracket Mounting',
+      category: 'installation',
+      image: '/service_installation.jpg',
+      desc: 'Precision spirit-level bracket alignment on 1.5 Ton Inverter AC with vibration dampers in Madipakkam.',
+    },
+    {
+      title: 'High-Pressure Hydro Jet Cleaning',
+      category: 'jetwash',
+      image: '/service_deep_cleaning.jpg',
+      desc: '120-bar hydro cleaning removing heavy dust from evaporator cooling coils with zero wall splatter.',
+    },
+    {
+      title: 'Digital Gas Pressure Calibration',
+      category: 'repair',
+      image: '/service_gas_refill.jpg',
+      desc: 'Precision refrigerant top-up with virgin R32 gas and nitrogen leak test in Velachery.',
+    },
+    {
+      title: 'Inverter PCB Motherboard Repair',
+      category: 'repair',
+      image: '/service_pcb_repair.jpg',
+      desc: 'Component-level micro-soldering and capacitor testing for Daikin inverter unit in OMR.',
+    },
+    {
+      title: 'Outdoor Condenser Power Wash',
+      category: 'jetwash',
+      image: '/svc_condenser_wash.jpg',
+      desc: 'Flushing stubborn Chennai coastal silt from outdoor condenser fins to restore rapid heat dissipation.',
+    },
+    {
+      title: 'Commercial Multi-Split Installation',
+      category: 'installation',
+      image: '/svc_consultation.jpg',
+      desc: 'Clean concealed copper piping installation for open-plan workspace in Guindy.',
+    },
+  ];
+
+  const filteredGallery = galleryFilter === 'all'
+    ? galleryItems
+    : galleryItems.filter(g => g.category === galleryFilter);
+
   const faqs = [
     {
       q: 'How fast can a Coolvengers technician reach my home in Chennai?',
-      a: 'We operate localized hub teams in Madipakkam, Velachery, OMR, and Guindy. For emergency breakdowns and bookings during our operational hours (10:00 AM – 6:00 PM), a certified technician typically arrives within 30 to 45 minutes.',
+      a: 'We operate localized hub dispatch units in Madipakkam, Velachery, OMR, and Guindy. For emergency breakdowns and bookings during our operational hours (10:00 AM – 6:00 PM), a certified technician typically arrives at your doorstep within 30 to 45 minutes.',
     },
     {
       q: 'How does the Ambassador "Refer & Earn ₹100" program work?',
-      a: 'Anyone can sign up as a Coolvengers Ambassador. Whenever you submit a referral with an AC service requirement (installation, jet wash, gas refill, or repair), our team attends to the customer. As soon as our Super Admin verifies the completed service, ₹100 is credited directly to your UPI ID (GPay/PhonePe/Paytm) or Bank account via manual audited transfer.',
+      a: 'Anyone in Chennai can sign up as a Coolvengers Ambassador. Whenever you submit an AC service referral (installation, jet wash, gas refill, or repair) for your friends, neighbors, or society members, our team attends to the customer. As soon as our Super Admin verifies the completed service, ₹100 is credited directly to your UPI ID (GPay/PhonePe/Paytm) or Bank account via verified manual audited transfer.',
     },
     {
       q: 'Do you provide a warranty on AC repair and gas refilling?',
@@ -265,7 +499,7 @@ export const HomePage: React.FC<Props> = ({
     },
     {
       q: 'Which air conditioner brands do you service?',
-      a: 'We service all major brands including Daikin, Voltas, Blue Star, LG, Mitsubishi, Carrier, Panasonic, Hitachi, Samsung, Godrej, Onida, and Lloyd, covering both inverter and non-inverter split and window units.',
+      a: 'We service all major brands in India including Daikin, Voltas, Blue Star, LG, Mitsubishi, Carrier, Panasonic, Hitachi, Samsung, Godrej, Onida, and Lloyd, covering both inverter and non-inverter split and window units.',
     },
     {
       q: 'Are your technicians certified and background verified?',
@@ -288,10 +522,22 @@ export const HomePage: React.FC<Props> = ({
 
   const currentTier = getMilestoneTier(referralCount);
 
+  const getServiceIcon = (iconType: ServiceItem['iconType']) => {
+    switch (iconType) {
+      case 'wrench': return <Wrench className="w-5 h-5 text-sky-600" />;
+      case 'droplet': return <Droplets className="w-5 h-5 text-sky-600" />;
+      case 'gauge': return <Gauge className="w-5 h-5 text-sky-600" />;
+      case 'cpu': return <Cpu className="w-5 h-5 text-sky-600" />;
+      case 'shield': return <ShieldCheck className="w-5 h-5 text-sky-600" />;
+      case 'fan': return <Fan className="w-5 h-5 text-sky-600" />;
+      default: return <Wrench className="w-5 h-5 text-sky-600" />;
+    }
+  };
+
   return (
-    <div className="space-y-16 pb-16">
+    <div className="space-y-16 pb-20">
       {/* 1. Live Verified Activity Ticker (Animated Marquee) */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-sky-900 via-slate-900 to-sky-900 text-sky-100 py-2.5 px-4 rounded-xl shadow-xs border border-sky-800/40">
+      <div className="relative overflow-hidden bg-gradient-to-r from-sky-950 via-slate-900 to-sky-950 text-sky-100 py-2.5 px-4 rounded-xl shadow-xs border border-sky-800/40">
         <div className="flex items-center gap-3">
           <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-sky-500/20 border border-sky-400/30 text-sky-300 text-[11px] font-bold tracking-wide uppercase">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -318,8 +564,8 @@ export const HomePage: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* 2. Hero Section with Airflow Streams & Animated Elements */}
-      <section className="relative rounded-3xl border border-slate-200/90 bg-white overflow-hidden shadow-sm">
+      {/* 2. Hero Section: Welcome to Coolvengers - Your Comfort, Our Expertise */}
+      <section id="home" className="relative rounded-3xl border border-slate-200/90 bg-white overflow-hidden shadow-sm scroll-mt-24">
         {/* Animated Cool Breeze Stream Background */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-40">
           <motion.div
@@ -361,20 +607,11 @@ export const HomePage: React.FC<Props> = ({
               animate={{ strokeDashoffset: [0, -160] }}
               transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}
             />
-            <motion.path
-              d="M0,420 C400,380 800,480 1200,410"
-              fill="none"
-              stroke="rgba(14, 165, 233, 0.18)"
-              strokeWidth="3"
-              strokeDasharray="16 16"
-              animate={{ strokeDashoffset: [0, -240] }}
-              transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
-            />
           </svg>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch min-h-[540px]">
-          {/* Left Column: Value Proposition & CTAs */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch min-h-[560px]">
+          {/* Left Column: Headline, Subheadline & Primary Actions */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -382,142 +619,114 @@ export const HomePage: React.FC<Props> = ({
             className="lg:col-span-7 p-8 sm:p-12 lg:p-14 flex flex-col justify-between z-10"
           >
             <div>
-              {/* Badge with Real Logo Mark */}
-              <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200/90 text-sky-900 text-xs font-semibold mb-5 shadow-2xs">
+              {/* Top Tagline Badge from coolvengers.in */}
+              <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200/90 text-sky-900 text-xs font-semibold mb-4 shadow-2xs">
                 <span className="w-2 h-2 rounded-full bg-sky-600 animate-ping" />
-                <span>Chennai&apos;s Rated #1 AC Air Conditioning Specialists</span>
+                <span className="font-bold text-sky-700">WELCOME TO COOLVENGERS</span>
                 <span className="text-slate-400">&middot;</span>
-                <span className="text-sky-700 font-bold">Madipakkam</span>
+                <span className="text-slate-600">Your Comfort, Our Expertise</span>
               </div>
 
+              {/* Live Headline from coolvengers.in */}
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight leading-[1.12]">
-                Superior Cooling Comfort for Every Home &amp; Office in{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-cyan-500">
+                Expert AC Services for Your Comfort in{' '}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-500">
                   Chennai
                 </span>
               </h1>
 
+              {/* Exact Subheadline from coolvengers.in */}
               <p className="mt-4 text-sm sm:text-base text-slate-600 max-w-xl leading-relaxed">
-                Specializing in prompt doorstep installation, high-pressure jet pump coil washing, precision nitrogen gas leak detection, and advanced inverter PCB repairs. Certified technicians at your doorstep in under 45 minutes.
+                We are your trusted AC service provider in Chennai, dedicated to delivering exceptional installation, maintenance, and repair services for all types of air conditioners.
               </p>
+
+              {/* Special Live Refer & Earn Offer Banner matching coolvengers.in */}
+              <div className="mt-5 p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-700 flex items-center justify-center shrink-0">
+                    <Sparkles className="w-4 h-4 text-amber-600" />
+                  </div>
+                  <div className="text-xs">
+                    <span className="font-bold text-slate-900">Refer &amp; Earn ₹100: </span>
+                    <span className="text-slate-600">Refer your friends or neighbors for AC service &amp; get ₹100 cash!</span>
+                  </div>
+                </div>
+                <button
+                  onClick={currentUser ? onOpenSubmitLead : onOpenRegister}
+                  className="shrink-0 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer whitespace-nowrap"
+                >
+                  Refer Now
+                </button>
+              </div>
             </div>
 
             {/* CTAs */}
-            <div className="mt-8 space-y-5">
-              <div className="flex flex-wrap items-center gap-3.5">
-                {currentUser?.role === 'SUPER_ADMIN' ? (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={onGoToPortal}
-                      className="px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer"
-                    >
-                      <ShieldCheck className="w-4 h-4 text-sky-400" />
-                      Open Super Admin Console
-                      <ChevronRight className="w-4 h-4 text-sky-400" />
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={onLogout}
-                      className="px-4 py-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition-colors cursor-pointer border border-slate-200"
-                    >
-                      Sign Out
-                    </motion.button>
-                  </div>
-                ) : (
-                  <>
-                    <motion.a
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      href="#book-service"
-                      className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-bold text-xs sm:text-sm shadow-md shadow-sky-600/25 transition-all flex items-center gap-2.5 cursor-pointer"
-                    >
-                      <Wrench className="w-4 h-4" />
-                      Book Doorstep AC Service
-                      <ArrowRight className="w-4 h-4" />
-                    </motion.a>
+            <div className="mt-8 space-y-6">
+              <div className="flex flex-wrap items-center gap-3">
+                <motion.a
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  href="#contact"
+                  className="px-6 py-3.5 rounded-xl bg-sky-900 hover:bg-sky-800 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center gap-2.5 cursor-pointer"
+                >
+                  <Wrench className="w-4 h-4 text-sky-400" />
+                  Book Doorstep AC Service
+                  <ArrowRight className="w-4 h-4" />
+                </motion.a>
 
-                    {currentUser ? (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={onGoToPortal}
-                          className="px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm shadow-xs transition-colors flex items-center gap-2 cursor-pointer"
-                        >
-                          Open Ambassador Portal
-                          <ChevronRight className="w-4 h-4 text-sky-400" />
-                        </motion.button>
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={onLogout}
-                          className="px-4 py-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition-colors cursor-pointer border border-slate-200"
-                        >
-                          Sign Out
-                        </motion.button>
-                      </div>
-                    ) : (
-                      <div className="flex flex-wrap items-center gap-2.5">
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={onOpenLogin}
-                          className="px-5 py-3.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold text-xs sm:text-sm transition-colors flex items-center gap-2 cursor-pointer shadow-xs"
-                        >
-                          <LogIn className="w-4 h-4 text-amber-700" />
-                          Sign In
-                        </motion.button>
+                <motion.a
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  href="#services"
+                  className="px-5 py-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm transition-colors flex items-center gap-2 border border-slate-200 cursor-pointer"
+                >
+                  <Layers className="w-4 h-4 text-sky-600" />
+                  Explore Services
+                </motion.a>
 
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={onOpenRegister}
-                          className="px-5 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm transition-colors flex items-center gap-2 cursor-pointer shadow-xs"
-                        >
-                          <Sparkles className="w-4 h-4 text-sky-400" />
-                          Join Ambassador Club &middot; Earn ₹100
-                        </motion.button>
-                      </div>
-                    )}
-                  </>
-                )}
+                <button
+                  onClick={() => {
+                    if (currentUser) {
+                      onGoToPortal();
+                    } else {
+                      onOpenRegister();
+                    }
+                  }}
+                  className="px-5 py-3.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 font-bold text-xs sm:text-sm transition-colors flex items-center gap-2 cursor-pointer"
+                >
+                  <Sparkles className="w-4 h-4 text-sky-600" />
+                  Ambassador Club (Earn ₹100)
+                </button>
               </div>
 
-              {/* Verified Trust Badges */}
-              <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-slate-100 text-xs text-slate-600">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  100% Genuine Spares
-                </span>
-                <span>&middot;</span>
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Clock className="w-4 h-4 text-sky-600" />
-                  10:00 AM &ndash; 6:00 PM Daily
-                </span>
-                <span>&middot;</span>
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Phone className="w-4 h-4 text-indigo-600" />
-                  +91 63808 73802
-                </span>
-                <span>&middot;</span>
-                <span className="flex items-center gap-1.5 font-medium text-amber-600">
-                  <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  4.9 / 5.0 Rating (2,400+ Reviews)
-                </span>
+              {/* 4 Stats Cards from coolvengers.in */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-slate-100">
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <div className="text-xl sm:text-2xl font-black text-sky-700 font-mono">4+</div>
+                  <div className="text-[11px] font-medium text-slate-600 mt-0.5">Years Experience</div>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <div className="text-xl sm:text-2xl font-black text-sky-700 font-mono">850+</div>
+                  <div className="text-[11px] font-medium text-slate-600 mt-0.5">Happy Customers</div>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <div className="text-xl sm:text-2xl font-black text-sky-700 font-mono">10+</div>
+                  <div className="text-[11px] font-medium text-slate-600 mt-0.5">Services Offered</div>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <div className="text-xl sm:text-2xl font-black text-sky-700 font-mono">15+</div>
+                  <div className="text-[11px] font-medium text-slate-600 mt-0.5">Expert Technicians</div>
+                </div>
               </div>
             </div>
           </motion.div>
 
-          {/* Right Column: Hero Image with Floating Interactive Pill & Logo Badge */}
+          {/* Right Column: Hero Visual with Real Work Badge */}
           <div className="lg:col-span-5 relative min-h-[340px] lg:min-h-full overflow-hidden bg-slate-100">
             <img
               src={heroImage}
-              alt="Coolvengers AC cooling comfort in a modern Chennai living room"
+              alt="Coolvengers AC cooling comfort in Chennai"
               className="w-full h-full object-cover object-center scale-105 hover:scale-100 transition-transform duration-1000"
-              referrerPolicy="no-referrer"
             />
             <div className="absolute inset-0 bg-gradient-to-t lg:bg-gradient-to-r from-white via-white/10 to-transparent pointer-events-none" />
 
@@ -533,8 +742,8 @@ export const HomePage: React.FC<Props> = ({
                   <Zap className="w-4 h-4 text-emerald-600" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-900">45-Min Express Dispatch</div>
-                  <div className="text-[10px] text-slate-500">South Chennai Coverage</div>
+                  <div className="text-xs font-bold text-slate-900">30-45 Min Response</div>
+                  <div className="text-[10px] text-slate-500">Madipakkam &amp; Chennai Hubs</div>
                 </div>
               </div>
             </motion.div>
@@ -551,14 +760,567 @@ export const HomePage: React.FC<Props> = ({
                 Coolvengers Quality Guarantee
               </div>
               <p className="text-[11px] text-slate-600 mt-1 leading-snug">
-                Madipakkam &amp; South Chennai&apos;s top-tier HVAC technicians. 30-day service warranty on all jet pump washes and gas top-ups.
+                100% Genuine spare parts, factory virgin refrigerant gas, and 30-day service warranty on all cleanings &amp; gas refills.
               </p>
             </motion.div>
           </div>
         </div>
       </section>
 
-      {/* 3. Interactive AC Power & Chill Calculator (Animated Widget) */}
+      {/* 3. How It Works (The 3-Step Process from coolvengers.in) */}
+      <section className="space-y-6">
+        <div className="text-center max-w-xl mx-auto space-y-1">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-800 text-xs font-bold border border-sky-200">
+            <Settings className="w-3.5 h-3.5 text-sky-600" />
+            HOW IT WORKS
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            Seamless AC Care in 3 Simple Steps
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600">
+            Getting your AC installed, serviced, or repaired in Chennai has never been easier.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <motion.div
+            whileHover={{ y: -4 }}
+            className="p-6 sm:p-7 rounded-2xl bg-white border border-slate-200 shadow-xs relative overflow-hidden group hover:border-sky-300 transition-all text-left"
+          >
+            <div className="text-4xl font-black text-sky-100 font-mono absolute top-4 right-5 select-none">
+              01
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-sky-50 border border-sky-200 flex items-center justify-center mb-4 text-sky-600 group-hover:scale-105 transition-transform">
+              <Calendar className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 mb-2">1. Schedule a Service</h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Contact us via call, WhatsApp, or submit your booking online. Pick your required service (Installation, Jet Wash, Gas Refill, Repair) and convenient time slot.
+            </p>
+          </motion.div>
+
+          <motion.div
+            whileHover={{ y: -4 }}
+            className="p-6 sm:p-7 rounded-2xl bg-white border border-slate-200 shadow-xs relative overflow-hidden group hover:border-sky-300 transition-all text-left"
+          >
+            <div className="text-4xl font-black text-sky-100 font-mono absolute top-4 right-5 select-none">
+              02
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-sky-50 border border-sky-200 flex items-center justify-center mb-4 text-sky-600 group-hover:scale-105 transition-transform">
+              <Wrench className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 mb-2">2. Expert Installation &amp; Repair</h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Our verified technicians arrive at your doorstep in under 45 minutes equipped with high-pressure jet pumps, digital manifold gauges, and genuine spare parts.
+            </p>
+          </motion.div>
+
+          <motion.div
+            whileHover={{ y: -4 }}
+            className="p-6 sm:p-7 rounded-2xl bg-white border border-slate-200 shadow-xs relative overflow-hidden group hover:border-sky-300 transition-all text-left"
+          >
+            <div className="text-4xl font-black text-sky-100 font-mono absolute top-4 right-5 select-none">
+              03
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-sky-50 border border-sky-200 flex items-center justify-center mb-4 text-sky-600 group-hover:scale-105 transition-transform">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 mb-2">3. Enjoy Comfort</h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Relax in ice-cold breeze while we ensure your AC operates at peak cooling efficiency with full transparent billing and 30-day service warranty.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* 4. About Us Section (#about) */}
+      <section id="about" className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-10 lg:p-12 shadow-sm scroll-mt-24">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+          <div className="lg:col-span-6 space-y-5">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-800 text-xs font-bold border border-sky-200">
+              <Award className="w-3.5 h-3.5 text-sky-600" />
+              ABOUT COOLVENGERS AIRCONS
+            </div>
+
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight leading-tight">
+              Chennai&apos;s Trusted Air Conditioning Care Specialists
+            </h2>
+
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              Coolvengers was founded with a singular mission: to provide fast, reliable, transparent, and expert AC care across Chennai. In a city where temperatures regularly exceed 38&deg;C, an efficient air conditioner is not a luxury &mdash; it is essential comfort.
+            </p>
+
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              With <strong>4+ years of hands-on technical expertise</strong>, our fleet of <strong>15+ certified technicians</strong> handles everything from precision split and window AC mounting to 120-bar hydro jet wash coil washing, digital refrigerant gas calibration, and complex inverter PCB diagnostics. We are proud to serve over <strong>850+ satisfied residential and commercial clients</strong> across Madipakkam, Velachery, OMR, Guindy, Tambaram, and throughout Chennai.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="text-xs">
+                  <div className="font-bold text-slate-900">Certified HVAC Team</div>
+                  <div className="text-slate-500 text-[11px]">4+ years field experience</div>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="text-xs">
+                  <div className="font-bold text-slate-900">100% Genuine Spares</div>
+                  <div className="text-slate-500 text-[11px]">Factory sealed refrigerants</div>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="text-xs">
+                  <div className="font-bold text-slate-900">Upfront Honest Pricing</div>
+                  <div className="text-slate-500 text-[11px]">Zero hidden charges</div>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="text-xs">
+                  <div className="font-bold text-slate-900">30-Day Guarantee</div>
+                  <div className="text-slate-500 text-[11px]">Cooling warranty on all jobs</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-6 relative rounded-2xl overflow-hidden border border-slate-200 shadow-md">
+            <img
+              src={technicianImage}
+              alt="Coolvengers AC technician servicing cooling unit in Chennai"
+              className="w-full h-full object-cover object-center max-h-[420px]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end p-6">
+              <div className="text-white">
+                <div className="text-xs font-bold text-sky-300 uppercase tracking-wider">
+                  Madipakkam Headquarters &middot; Chennai Hub
+                </div>
+                <div className="text-sm font-semibold text-slate-100 mt-1">
+                  15+ Verified Technicians Ready to Dispatch in Under 45 Minutes.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. Explore Our Services with 3 Live Categories (#services) */}
+      <section id="services" className="space-y-8 scroll-mt-24">
+        <div className="text-center max-w-2xl mx-auto space-y-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-800 text-xs font-bold border border-sky-200">
+            <Wrench className="w-3.5 h-3.5 text-sky-600" />
+            EXPLORE OUR SERVICES
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            Specialized AC Solutions for Chennai Climate
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600">
+            Browse our full catalog across AC Installation, AC Maintenance, and AC Repair.
+          </p>
+        </div>
+
+        {/* Category Tabs: All, AC Installation, AC Maintenance, AC Repair */}
+        <div className="flex items-center justify-center gap-2 flex-wrap">
+          <button
+            onClick={() => {
+              setSelectedCategory('all');
+              setSelectedServiceIndex(0);
+            }}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              selectedCategory === 'all'
+                ? 'bg-sky-600 text-white shadow-xs'
+                : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            All Services ({allServices.length})
+          </button>
+          <button
+            onClick={() => {
+              setSelectedCategory('installation');
+              setSelectedServiceIndex(0);
+            }}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              selectedCategory === 'installation'
+                ? 'bg-sky-600 text-white shadow-xs'
+                : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            <Wrench className="w-3.5 h-3.5" />
+            AC Installation (4)
+          </button>
+          <button
+            onClick={() => {
+              setSelectedCategory('maintenance');
+              setSelectedServiceIndex(0);
+            }}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              selectedCategory === 'maintenance'
+                ? 'bg-sky-600 text-white shadow-xs'
+                : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            <Droplets className="w-3.5 h-3.5" />
+            AC Maintenance (4)
+          </button>
+          <button
+            onClick={() => {
+              setSelectedCategory('repair');
+              setSelectedServiceIndex(0);
+            }}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              selectedCategory === 'repair'
+                ? 'bg-sky-600 text-white shadow-xs'
+                : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            <Cpu className="w-3.5 h-3.5" />
+            AC Repair (2)
+          </button>
+        </div>
+
+        {/* Sub-tabs for filtered items */}
+        <div className="flex items-center justify-start sm:justify-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+          {filteredServices.map((srv, idx) => (
+            <button
+              key={srv.id}
+              onClick={() => setSelectedServiceIndex(idx)}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
+                selectedServiceIndex === idx
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              {getServiceIcon(srv.iconType)}
+              <span>{srv.title.split('(')[0].trim()}</span>
+              {srv.popular && (
+                <span className="text-[10px] bg-amber-500/20 text-amber-700 font-extrabold px-1 rounded">
+                  ★
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Active Service Showcase Card */}
+        <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-10 shadow-sm">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeService.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25 }}
+              className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center"
+            >
+              <div className="lg:col-span-7 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-sky-50 border border-sky-200 flex items-center justify-center shadow-2xs shrink-0">
+                    {getServiceIcon(activeService.iconType)}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xl sm:text-2xl font-black text-slate-900">
+                        {activeService.title}
+                      </h3>
+                      {activeService.popular && (
+                        <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold uppercase tracking-wider">
+                          Popular
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs font-medium text-sky-600 mt-0.5">
+                      {activeService.tagline}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 text-xs font-mono">
+                  <span className="px-3 py-1 rounded-md bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
+                    Price: {activeService.price}
+                  </span>
+                  <span className="text-slate-500">
+                    Duration: {activeService.duration}
+                  </span>
+                  <span className="text-amber-600 font-semibold">
+                    {activeService.rating}
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700">
+                  <span className="font-bold text-slate-900">Ideal For: </span>
+                  {activeService.idealFor}
+                </div>
+
+                <div className="space-y-2 pt-2">
+                  <div className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    Features &amp; Checklist:
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-600">
+                    {activeService.features.map((feat, fIdx) => (
+                      <div key={fIdx} className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
+                        <span>{feat}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-4 flex flex-wrap gap-3">
+                  <a
+                    href="#contact"
+                    onClick={() => setBookingService(activeService.title)}
+                    className="px-6 py-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs sm:text-sm shadow-xs transition-colors flex items-center gap-2 cursor-pointer"
+                  >
+                    Book This Service
+                    <ArrowRight className="w-4 h-4" />
+                  </a>
+
+                  <button
+                    onClick={() => {
+                      if (currentUser) {
+                        onOpenSubmitLead();
+                      } else {
+                        onOpenRegister();
+                      }
+                    }}
+                    className="px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-300 font-bold text-xs sm:text-sm transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Sparkles className="w-4 h-4 text-amber-500" />
+                    Refer Client (Earn ₹100)
+                  </button>
+                </div>
+              </div>
+
+              {/* Right Image / Visual */}
+              <div className="lg:col-span-5 relative rounded-2xl overflow-hidden border border-slate-200 h-[280px] sm:h-[340px] shadow-xs group">
+                <img
+                  src={activeService.image}
+                  alt={activeService.title}
+                  className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/25 to-transparent flex items-end p-6">
+                  <div className="text-white">
+                    <div className="text-xs font-bold tracking-wider uppercase text-sky-300 drop-shadow-xs">
+                      {activeService.badge}
+                    </div>
+                    <div className="text-sm font-semibold mt-1 text-slate-100 leading-snug">
+                      {activeService.caption}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </section>
+
+      {/* 6. Why Choose Coolvengers Aircons? Section */}
+      <section className="space-y-6">
+        <div className="text-center max-w-xl mx-auto space-y-1">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-800 text-xs font-bold border border-sky-200">
+            <Award className="w-3.5 h-3.5 text-sky-600" />
+            WHY CHOOSE US
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            Why Choose Coolvengers Aircons?
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600">
+            Expertise, reliability, and commitment to customer satisfaction set us apart from the rest.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {[
+            {
+              title: '4+ Years Field Experience',
+              desc: 'Thousands of successfully completed split and window AC jobs across Chennai with 5-star ratings.',
+              icon: <Clock className="w-5 h-5 text-sky-600" />,
+            },
+            {
+              title: '15+ Expert Technicians',
+              desc: 'Background-verified, certified HVAC professionals equipped with specialized tools & diagnostic meters.',
+              icon: <Users className="w-5 h-5 text-indigo-600" />,
+            },
+            {
+              title: '100% Genuine Spare Parts',
+              desc: 'Sealed virgin refrigerants (R32/R410A) and factory-tested capacitors, copper tubes & PCB electronics.',
+              icon: <ShieldCheck className="w-5 h-5 text-emerald-600" />,
+            },
+            {
+              title: '30-45 Min Express Response',
+              desc: 'Dedicated neighborhood dispatch teams across Madipakkam, Velachery, OMR, Guindy, and South Chennai.',
+              icon: <Zap className="w-5 h-5 text-amber-600" />,
+            },
+            {
+              title: 'Transparent Pricing & Warranty',
+              desc: 'Clear upfront quotes before any work begins, backed by a solid 30-day cooling and repair guarantee.',
+              icon: <Award className="w-5 h-5 text-blue-600" />,
+            },
+            {
+              title: 'Refer & Earn ₹100 Program',
+              desc: 'Earn direct cash rewards into your UPI or Bank account for every verified AC service referral.',
+              icon: <Sparkles className="w-5 h-5 text-purple-600" />,
+            },
+          ].map((item, idx) => (
+            <motion.div
+              key={idx}
+              whileHover={{ y: -4 }}
+              className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs hover:border-sky-300 transition-all text-left flex flex-col justify-between"
+            >
+              <div>
+                <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mb-3">
+                  {item.icon}
+                </div>
+                <h3 className="text-sm font-bold text-slate-900 mb-1">{item.title}</h3>
+                <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* 7. Work Gallery Showcase (#gallery) */}
+      <section id="gallery" className="space-y-6 scroll-mt-24">
+        <div className="text-center max-w-xl mx-auto space-y-1">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-800 text-xs font-bold border border-sky-200">
+            <Camera className="w-3.5 h-3.5 text-sky-600" />
+            WORK GALLERY
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            Our Work in Action Across Chennai
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600">
+            Real field photos of our technicians executing AC installations, deep jet cleanings, and repairs.
+          </p>
+        </div>
+
+        {/* Gallery category buttons */}
+        <div className="flex items-center justify-center gap-2 flex-wrap">
+          <button
+            onClick={() => setGalleryFilter('all')}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              galleryFilter === 'all'
+                ? 'bg-sky-600 text-white shadow-xs'
+                : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            All Work
+          </button>
+          <button
+            onClick={() => setGalleryFilter('installation')}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              galleryFilter === 'installation'
+                ? 'bg-sky-600 text-white shadow-xs'
+                : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            Installation
+          </button>
+          <button
+            onClick={() => setGalleryFilter('jetwash')}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              galleryFilter === 'jetwash'
+                ? 'bg-sky-600 text-white shadow-xs'
+                : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            Hydro Jet Wash
+          </button>
+          <button
+            onClick={() => setGalleryFilter('repair')}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              galleryFilter === 'repair'
+                ? 'bg-sky-600 text-white shadow-xs'
+                : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            Gas &amp; PCB Repair
+          </button>
+        </div>
+
+        {/* Gallery Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredGallery.map((item, idx) => (
+            <motion.div
+              key={idx}
+              whileHover={{ y: -4 }}
+              className="rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-xs flex flex-col group"
+            >
+              <div className="relative h-48 overflow-hidden bg-slate-100">
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                />
+              </div>
+              <div className="p-4 flex-1 flex flex-col justify-between">
+                <div>
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-900">{item.title}</h4>
+                  <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">{item.desc}</p>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* 8. Customer Testimonials & Reviews (#reviews) */}
+      <section id="reviews" className="space-y-6 scroll-mt-24">
+        <div className="text-center max-w-xl mx-auto space-y-1">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-800 text-xs font-bold border border-sky-200">
+            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+            CUSTOMER REVIEWS
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            What Chennai Customers Say
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600">
+            Dedicated to quality service and excellence in every air conditioning project.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {testimonials.map((t, idx) => (
+            <motion.div
+              key={idx}
+              whileHover={{ y: -4 }}
+              className="p-6 sm:p-7 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow text-left"
+            >
+              <div>
+                <div className="flex items-center gap-3.5 mb-4">
+                  <img
+                    src={t.avatar}
+                    alt={t.name}
+                    className="w-12 h-12 rounded-full object-cover shrink-0 border border-slate-200"
+                  />
+                  <div>
+                    <div className="text-base font-bold text-slate-800">{t.name}</div>
+                    <div className="text-[11px] text-slate-400">{t.location}</div>
+                  </div>
+                </div>
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal italic">
+                  &ldquo;{t.comment}&rdquo;
+                </p>
+              </div>
+
+              <div className="pt-6 flex items-center justify-between border-t border-slate-100 mt-4">
+                <div className="flex items-center gap-1 text-amber-400">
+                  {Array.from({ length: t.rating }).map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                  Verified Customer
+                </span>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* 9. Interactive AC Chill & Power Calculator */}
       <section className="rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-50/70 via-white to-blue-50/40 p-6 sm:p-10 shadow-xs">
         <div className="max-w-4xl mx-auto">
           <div className="text-center max-w-2xl mx-auto mb-8">
@@ -647,7 +1409,7 @@ export const HomePage: React.FC<Props> = ({
             <div className="md:col-span-5 bg-gradient-to-br from-slate-900 to-sky-950 text-white p-6 rounded-2xl space-y-5 shadow-inner">
               <div className="text-xs font-bold text-sky-400 uppercase tracking-widest flex items-center gap-1.5">
                 <Wind className="w-3.5 h-3.5" />
-                Coolvengers Optimized Metrics
+                Coolvengers Metrics
               </div>
 
               <div className="space-y-4">
@@ -669,32 +1431,22 @@ export const HomePage: React.FC<Props> = ({
                 </div>
               </div>
 
-              {currentUser?.role === 'SUPER_ADMIN' ? (
-                <button
-                  onClick={onGoToPortal}
-                  className="w-full py-2.5 px-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  Manage Service Verification
-                </button>
-              ) : (
-                <a
-                  href="#book-service"
-                  className="w-full py-2.5 px-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
-                >
-                  Schedule Jet Cleaning (₹499)
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </a>
-              )}
+              <a
+                href="#contact"
+                className="w-full py-2.5 px-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
+              >
+                Schedule Jet Cleaning (₹499)
+                <ArrowRight className="w-3.5 h-3.5" />
+              </a>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 4. Ambassador "Refer & Earn ₹100" Interactive Simulator Banner */}
+      {/* 10. Ambassador "Refer & Earn ₹100" Section & Simulator */}
       <section className="relative rounded-3xl overflow-hidden border border-amber-200 bg-gradient-to-br from-amber-50/80 via-white to-sky-50/50 p-8 sm:p-12 shadow-sm">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          <div className="lg:col-span-7 space-y-4">
+          <div className="lg:col-span-7 space-y-4 text-left">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 text-amber-950 font-bold text-xs border border-amber-300 shadow-2xs">
               <Sparkles className="w-3.5 h-3.5 text-amber-600" />
               COOLVENGERS AMBASSADOR CLUB &middot; REFER &amp; EARN ₹100
@@ -773,7 +1525,7 @@ export const HomePage: React.FC<Props> = ({
           </div>
 
           {/* Right Card: Earnings Meter & Milestone Tier */}
-          <div className="lg:col-span-5 bg-white border border-amber-200 rounded-2xl p-6 shadow-md space-y-4">
+          <div className="lg:col-span-5 bg-white border border-amber-200 rounded-2xl p-6 shadow-md space-y-4 text-left">
             <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               Projected Ambassador Payout
             </div>
@@ -812,232 +1564,93 @@ export const HomePage: React.FC<Props> = ({
         </div>
       </section>
 
-      {/* 5. Interactive Service Explorer with Animated Tabs */}
-      <section id="services" className="space-y-8 scroll-mt-24">
-        <div className="text-center max-w-2xl mx-auto space-y-2">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-800 text-xs font-bold border border-sky-200">
-            <Wrench className="w-3.5 h-3.5 text-sky-600" />
-            OUR COMPREHENSIVE AC SERVICES
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            Professional AC Care Tailored for Chennai Climate
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-600">
-            From precision jet cleaning to emergency refrigerant leak arrest, explore our full spectrum of HVAC solutions.
-          </p>
-        </div>
-
-        {/* Service Selector Tabs */}
-        <div className="flex items-center justify-start sm:justify-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-          {services.map((srv, idx) => (
-            <button
-              key={srv.id}
-              onClick={() => setActiveServiceTab(idx)}
-              className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-2 ${
-                activeServiceTab === idx
-                  ? 'bg-sky-600 text-white shadow-sm'
-                  : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              {srv.title.split('&')[0].trim()}
-            </button>
-          ))}
-        </div>
-
-        {/* Active Service Tab Feature Card */}
-        <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-10 shadow-sm">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeServiceTab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
-              className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center"
-            >
-              <div className="lg:col-span-7 space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-sky-50 border border-sky-200 flex items-center justify-center shadow-2xs">
-                    {services[activeServiceTab].icon}
-                  </div>
-                  <div>
-                    <h3 className="text-xl sm:text-2xl font-black text-slate-900">
-                      {services[activeServiceTab].title}
-                    </h3>
-                    <div className="text-xs font-medium text-sky-600">
-                      {services[activeServiceTab].tagline}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4 text-xs font-mono">
-                  <span className="px-3 py-1 rounded-md bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
-                    Price: {services[activeServiceTab].price}
-                  </span>
-                  <span className="text-slate-500">
-                    Est. Duration: {services[activeServiceTab].duration}
-                  </span>
-                  <span className="text-amber-600 font-semibold">
-                    {services[activeServiceTab].rating}
-                  </span>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700">
-                  <span className="font-bold text-slate-900">Best For: </span>
-                  {services[activeServiceTab].idealFor}
-                </div>
-
-                <div className="space-y-2 pt-2">
-                  <div className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                    Service Scope &amp; Checklist:
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-600">
-                    {services[activeServiceTab].features.map((feat, fIdx) => (
-                      <div key={fIdx} className="flex items-start gap-2">
-                        <Check className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
-                        <span>{feat}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="pt-4 flex flex-wrap gap-3">
-                  {currentUser?.role === 'SUPER_ADMIN' ? (
-                    <button
-                      onClick={onGoToPortal}
-                      className="px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm shadow-xs transition-colors flex items-center gap-2 cursor-pointer"
-                    >
-                      <ShieldCheck className="w-4 h-4 text-sky-400" />
-                      Verify in Admin Console
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
-                  ) : (
-                    <a
-                      href="#book-service"
-                      onClick={() => setBookingService(services[activeServiceTab].title)}
-                      className="px-6 py-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs sm:text-sm shadow-xs transition-colors flex items-center gap-2 cursor-pointer"
-                    >
-                      Book This Service
-                      <ArrowRight className="w-4 h-4" />
-                    </a>
-                  )}
-
-                  {currentUser?.role === 'AMBASSADOR' && (
-                    <button
-                      onClick={onOpenSubmitLead}
-                      className="px-6 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-300 font-bold text-xs sm:text-sm transition-colors cursor-pointer"
-                    >
-                      Refer Client for This (Earn ₹100)
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Right Image / Visual */}
-              <div className="lg:col-span-5 relative rounded-2xl overflow-hidden border border-slate-200 h-[280px] sm:h-[340px] shadow-xs group">
-                <img
-                  src={services[activeServiceTab].image}
-                  alt={services[activeServiceTab].title}
-                  className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/25 to-transparent flex items-end p-6">
-                  <div className="text-white">
-                    <div className="text-xs font-bold tracking-wider uppercase text-sky-300 drop-shadow-xs">
-                      {services[activeServiceTab].badge}
-                    </div>
-                    <div className="text-sm font-semibold mt-1 text-slate-100 leading-snug">
-                      {services[activeServiceTab].caption}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </section>
-
-      {/* 6. Why Choose Coolvengers Cards */}
-      <section className="space-y-6">
-        <div className="text-center max-w-xl mx-auto space-y-1">
-          <h2 className="text-2xl font-black text-slate-900">Why Chennai Trusts Coolvengers</h2>
-          <p className="text-xs sm:text-sm text-slate-600">
-            Precision engineering, honest billing, and genuine factory components.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            {
-              title: '30-45 Min Response',
-              desc: 'Dedicated neighborhood dispatch units in Madipakkam & South Chennai.',
-              icon: <Clock className="w-5 h-5 text-sky-600" />,
-            },
-            {
-              title: '100% Genuine Spares',
-              desc: 'Factory-tested capacitors, sensors, copper coils, and virgin refrigerants.',
-              icon: <ShieldCheck className="w-5 h-5 text-emerald-600" />,
-            },
-            {
-              title: 'Transparent Pricing',
-              desc: 'Standardized rate card upfront before work starts. Zero surprise fees.',
-              icon: <Award className="w-5 h-5 text-amber-600" />,
-            },
-            {
-              title: 'Referral Rewards',
-              desc: '₹100 direct cash payout on every successful referral via our Ambassador Club.',
-              icon: <Users className="w-5 h-5 text-indigo-600" />,
-            },
-          ].map((item, idx) => (
-            <motion.div
-              key={idx}
-              whileHover={{ y: -4 }}
-              className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs hover:border-sky-300 transition-all text-left"
-            >
-              <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mb-3">
-                {item.icon}
-              </div>
-              <h3 className="text-sm font-bold text-slate-900 mb-1">{item.title}</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* 7. Doorstep AC Booking Form (Customers & Ambassadors only) */}
-      {currentUser?.role !== 'SUPER_ADMIN' && (
-        <section id="book-service" className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-10 shadow-sm scroll-mt-24">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          <div className="lg:col-span-5 space-y-4">
+      {/* 11. Doorstep AC Booking & Direct Contact (#contact / #book-service) */}
+      <section id="contact" className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-10 shadow-sm scroll-mt-24">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start text-left">
+          <div className="lg:col-span-5 space-y-5">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-800 text-xs font-bold border border-sky-200">
               <Clock className="w-3.5 h-3.5 text-sky-600" />
-              DOORSTEP AC BOOKING
+              CONTACT US &middot; DOORSTEP AC BOOKING
             </div>
+
             <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Schedule Your AC Visit in 30 Seconds
+              Get in Touch or Book a Visit in 30 Seconds
             </h2>
+
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-              Book a certified Coolvengers technician for inspection, cleaning, gas refill, or repair. Our coordinator will call you to confirm your slot.
+              Book a certified Coolvengers technician for installation, jet wash cleaning, gas refilling, or breakdown repairs. Our Chennai dispatch coordinator will call to confirm your appointment.
             </p>
 
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs text-slate-700">
-              <div className="flex items-center gap-2 font-bold text-slate-900">
-                <MapPin className="w-4 h-4 text-sky-600" />
-                Service Center Headquarters:
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3.5 text-xs text-slate-700">
+              <div className="flex items-start gap-3">
+                <MapPin className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-bold text-slate-900">Service Center Headquarters:</div>
+                  <div className="text-[11px] text-slate-600 mt-0.5">
+                    Plot No. 14, 2nd Main Road, Madipakkam, Chennai &ndash; 600091, Tamil Nadu
+                  </div>
+                </div>
               </div>
-              <p className="text-[11px] text-slate-600 pl-6">
-                Plot No. 14, 2nd Main Road, Madipakkam, Chennai &ndash; 600091, Tamil Nadu
-              </p>
-              <div className="flex items-center gap-2 font-bold text-slate-900 pt-1">
-                <Phone className="w-4 h-4 text-emerald-600" />
-                Direct Hotline:
+
+              <div className="flex items-start gap-3">
+                <Phone className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-bold text-slate-900">Direct Contact Numbers:</div>
+                  <div className="text-[11px] font-mono font-bold text-slate-800 mt-0.5 flex flex-wrap gap-2">
+                    <a href="tel:+916380873802" className="hover:text-sky-600 transition-colors">
+                      +91 63808 73802
+                    </a>
+                    <span>/</span>
+                    <a href="tel:+919176773802" className="hover:text-sky-600 transition-colors">
+                      +91 91767 73802
+                    </a>
+                  </div>
+                </div>
               </div>
-              <p className="text-[11px] font-mono font-bold text-slate-900 pl-6">
-                +91 63808 73802 &middot; 10:00 AM &ndash; 6:00 PM
-              </p>
+
+              <div className="flex items-start gap-3">
+                <Mail className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-bold text-slate-900">Email Address:</div>
+                  <a href="mailto:gokul@coolvengers.in" className="text-[11px] font-mono text-slate-600 hover:text-sky-600 transition-colors mt-0.5 block">
+                    gokul@coolvengers.in
+                  </a>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <Clock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-bold text-slate-900">Operational Hours:</div>
+                  <div className="text-[11px] text-slate-600 mt-0.5">
+                    Monday &ndash; Sunday: 10:00 AM &ndash; 6:00 PM
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Action Buttons */}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <a
+                href="https://wa.me/916380873802?text=Hi%20Coolvengers,%20I%20would%20like%20to%20inquire%20about%20AC%20services."
+                target="_blank"
+                rel="noreferrer"
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-colors"
+              >
+                <MessageCircle className="w-4 h-4" />
+                Chat on WhatsApp
+              </a>
+              <a
+                href="tel:+916380873802"
+                className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-colors"
+              >
+                <Phone className="w-4 h-4 text-emerald-400" />
+                Call Hotline
+              </a>
             </div>
           </div>
 
-          {/* Form */}
+          {/* Doorstep Booking Form */}
           <div className="lg:col-span-7 bg-slate-50 p-6 sm:p-8 rounded-2xl border border-slate-200">
             {bookingSubmitted ? (
               <motion.div
@@ -1048,9 +1661,9 @@ export const HomePage: React.FC<Props> = ({
                 <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center">
                   <CheckCircle2 className="w-8 h-8" />
                 </div>
-                <h3 className="text-xl font-black text-slate-900">AC Booking Confirmed!</h3>
-                <p className="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">
-                  Thank you, <strong>{bookingName}</strong>. Our service technician team in {bookingArea} has received your request for <strong>{bookingService}</strong>. We will call you shortly on <strong>+91 {bookingPhone}</strong> to confirm your arrival window.
+                <h3 className="text-xl font-black text-slate-900">AC Doorstep Booking Received!</h3>
+                <p className="text-xs text-slate-600 max-w-sm mx-auto">
+                  Thank you, <strong>{bookingName}</strong>. Our Chennai hub dispatcher will call you at <strong>{bookingPhone}</strong> within 15 minutes to confirm the technician visit.
                 </p>
                 <button
                   onClick={() => {
@@ -1059,17 +1672,21 @@ export const HomePage: React.FC<Props> = ({
                     setBookingPhone('');
                     setBookingNotes('');
                   }}
-                  className="mt-4 px-5 py-2.5 rounded-xl bg-sky-600 text-white text-xs font-bold hover:bg-sky-500 transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-sky-600 text-white text-xs font-bold hover:bg-sky-500 transition-colors cursor-pointer mt-2"
                 >
-                  Book Another AC
+                  Book Another AC Service
                 </button>
               </motion.div>
             ) : (
               <form onSubmit={handleBookingSubmit} className="space-y-4">
+                <div className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2">
+                  Doorstep Service Request Form
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Your Full Name *
+                      Customer Full Name *
                     </label>
                     <input
                       type="text"
@@ -1083,20 +1700,16 @@ export const HomePage: React.FC<Props> = ({
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Mobile Number *
+                      Mobile / WhatsApp Number *
                     </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-xs text-slate-500 font-mono">+91</span>
-                      <input
-                        type="tel"
-                        required
-                        pattern="[0-9]{10}"
-                        value={bookingPhone}
-                        onChange={e => setBookingPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                        placeholder="9876543210"
-                        className="w-full pl-11 pr-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 text-xs font-mono focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-                      />
-                    </div>
+                    <input
+                      type="tel"
+                      required
+                      value={bookingPhone}
+                      onChange={e => setBookingPhone(e.target.value)}
+                      placeholder="e.g. 9876543210"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 text-xs focus:ring-2 focus:ring-sky-500 focus:border-sky-500 font-mono"
+                    />
                   </div>
                 </div>
 
@@ -1110,7 +1723,7 @@ export const HomePage: React.FC<Props> = ({
                       onChange={e => setBookingService(e.target.value)}
                       className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 text-xs focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                     >
-                      {services.map(s => (
+                      {allServices.map(s => (
                         <option key={s.id} value={s.title}>
                           {s.title} ({s.price})
                         </option>
@@ -1144,66 +1757,25 @@ export const HomePage: React.FC<Props> = ({
                     type="text"
                     value={bookingNotes}
                     onChange={e => setBookingNotes(e.target.value)}
-                    placeholder="e.g. Daikin 1.5 Ton Split, water dripping from indoor unit"
+                    placeholder="e.g. Daikin 1.5 Ton Split, water dripping or low cooling"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 text-xs focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full py-3.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs sm:text-sm shadow-sm transition-colors flex items-center justify-center gap-2 cursor-pointer mt-2"
+                  className="w-full py-3.5 px-4 rounded-xl bg-sky-900 hover:bg-sky-800 text-white font-bold text-xs sm:text-sm shadow-sm transition-colors flex items-center justify-center gap-2 cursor-pointer mt-2"
                 >
-                  <Send className="w-4 h-4" />
+                  <Send className="w-4 h-4 text-sky-400" />
                   Confirm AC Doorstep Visit
                 </button>
               </form>
             )}
           </div>
         </div>
-        </section>
-      )}
-
-      {/* 8. Customer Testimonials */}
-      <section className="space-y-6">
-        <div className="text-center max-w-xl mx-auto space-y-1">
-          <h2 className="text-2xl font-black text-slate-900">What Chennai Customers Say</h2>
-          <p className="text-xs sm:text-sm text-slate-600">
-            Dedicated to quality service and excellence in every project.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {testimonials.map((t, idx) => (
-            <motion.div
-              key={idx}
-              whileHover={{ y: -4 }}
-              className="p-6 sm:p-7 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow"
-            >
-              <div>
-                <div className="flex items-center gap-3.5 mb-4">
-                  <img
-                    src={t.avatar}
-                    alt={t.name}
-                    className="w-12 h-12 rounded-full object-cover shrink-0"
-                  />
-                  <div className="text-base font-semibold text-slate-800">{t.name}</div>
-                </div>
-                <p className="text-sm text-slate-600 leading-relaxed font-normal">
-                  {t.comment}
-                </p>
-              </div>
-
-              <div className="pt-6 flex items-center gap-1.5 text-amber-400">
-                {Array.from({ length: t.rating }).map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                ))}
-              </div>
-            </motion.div>
-          ))}
-        </div>
       </section>
 
-      {/* 9. Interactive FAQ Accordion */}
+      {/* 12. Interactive FAQ Accordion */}
       <section className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-10 shadow-xs">
         <div className="max-w-3xl mx-auto space-y-6">
           <div className="text-center space-y-1">
@@ -1214,7 +1786,7 @@ export const HomePage: React.FC<Props> = ({
             <h2 className="text-2xl font-black text-slate-900">Got Questions? We&apos;ve Got Answers</h2>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 text-left">
             {faqs.map((faq, idx) => (
               <div
                 key={idx}
@@ -1253,6 +1825,41 @@ export const HomePage: React.FC<Props> = ({
           </div>
         </div>
       </section>
+
+      {/* 13. Floating Quick Contact Action Buttons (Bottom Right) */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2.5 items-end">
+        {/* Floating Call Button */}
+        <a
+          href="tel:+916380873802"
+          className="w-11 h-11 rounded-full bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center shadow-lg transition-transform hover:scale-105"
+          title="Call Coolvengers Hotline"
+        >
+          <Phone className="w-5 h-5 text-sky-400" />
+        </a>
+
+        {/* Floating Email Button */}
+        <a
+          href="mailto:gokul@coolvengers.in"
+          className="w-11 h-11 rounded-full bg-sky-600 hover:bg-sky-500 text-white flex items-center justify-center shadow-lg transition-transform hover:scale-105"
+          title="Email Coolvengers"
+        >
+          <Mail className="w-5 h-5 text-white" />
+        </a>
+
+        {/* Floating WhatsApp Button */}
+        <a
+          href="https://wa.me/916380873802?text=Hi%20Coolvengers,%20I%20would%20like%20to%20inquire%20about%20AC%20services."
+          target="_blank"
+          rel="noreferrer"
+          className="w-13 h-13 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white flex items-center justify-center shadow-xl transition-transform hover:scale-110 relative group"
+          title="Chat with Coolvengers on WhatsApp"
+        >
+          <MessageCircle className="w-7 h-7" />
+          <span className="absolute right-15 bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-md">
+            Chat on WhatsApp
+          </span>
+        </a>
+      </div>
     </div>
   );
 };
