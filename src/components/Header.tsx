@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronDown, PlusCircle, Check, LogIn, Menu, X } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { User } from '../types/index.js';
 import { api } from '../services/api.js';
 import { NotificationDropdown } from './NotificationDropdown.js';
@@ -33,6 +33,7 @@ export const Header: React.FC<Props> = ({
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showExploreDropdown, setShowExploreDropdown] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [activeNav, setActiveNav] = useState<NavItem>(() => {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash;
@@ -52,6 +53,14 @@ export const Header: React.FC<Props> = ({
 
   useEffect(() => {
     api.getDemoUsers().then(res => setDemoUsers(res.users)).catch(console.error);
+  }, []);
+
+  // Scroll-aware header shrink effect
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   useEffect(() => {
@@ -195,9 +204,15 @@ export const Header: React.FC<Props> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-xs">
+    <header
+      className={`sticky top-0 z-40 backdrop-blur-md border-b transition-all duration-300 ${
+        scrolled
+          ? 'bg-white/98 border-slate-200 shadow-md'
+          : 'bg-white/95 border-slate-200/90 shadow-xs'
+      }`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-3 sm:gap-6">
+        <div className={`flex items-center justify-between gap-3 sm:gap-6 transition-all duration-300 ${scrolled ? 'h-14' : 'h-16'}`}>
           {/* Zone 1: Brand Wordmark with Coolvengers Logo */}
           <button
             onClick={() => handleNavClick('home')}
@@ -226,7 +241,12 @@ export const Header: React.FC<Props> = ({
               </button>
 
               {showExploreDropdown && (
-                <div className="absolute top-full left-0 mt-2 w-56 rounded-2xl bg-white border border-slate-200 shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <motion.div
+                  initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                  transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                  className="absolute top-full left-0 mt-2 w-56 rounded-2xl bg-white border border-slate-200 shadow-xl py-2 z-50">
                   <button
                     onClick={() => handleNavClick('services', 'installation')}
                     className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 hover:bg-sky-50 hover:text-sky-700 flex items-center justify-between transition-colors cursor-pointer"
@@ -248,7 +268,7 @@ export const Header: React.FC<Props> = ({
                     <span>AC Repair</span>
                     <span className="text-[10px] font-bold text-sky-600 bg-sky-100/70 px-1.5 py-0.5 rounded">PCB & Leakage</span>
                   </button>
-                </div>
+                </motion.div>
               )}
             </div>
 
@@ -459,11 +479,16 @@ export const Header: React.FC<Props> = ({
         </div>
 
         {/* Mobile Navigation Drawer */}
+        <AnimatePresence>
         {showMobileMenu && (
-          <div
-            ref={mobileMenuRef}
-            className="md:hidden py-3 px-2 border-t border-slate-200 bg-white/98 backdrop-blur-md shadow-lg space-y-1"
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="md:hidden border-t border-slate-200 bg-white/98 backdrop-blur-md shadow-lg overflow-hidden"
           >
+            <div ref={mobileMenuRef} className="py-3 px-2 space-y-1">
             <button
               onClick={() => handleNavClick('home')}
               className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-between cursor-pointer ${
@@ -574,7 +599,9 @@ export const Header: React.FC<Props> = ({
               </button>
             )}
           </div>
+          </motion.div>
         )}
+        </AnimatePresence>
       </div>
     </header>
   );

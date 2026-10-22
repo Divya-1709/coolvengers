@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Wind,
@@ -104,6 +104,47 @@ export const HomePage: React.FC<Props> = ({
 
   const heroImage = '/src/assets/images/coolvengers_home_hero_1792133261520.jpg';
   const technicianImage = '/src/assets/images/coolvengers_technician_work_1792133261366.jpg';
+
+  // ── Scroll-reveal hook ──────────────────────────────────────
+  const useReveal = (variant: 'hidden' | 'left' | 'right' | 'scale' = 'hidden') => {
+    const ref = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+      const el = ref.current;
+      if (!el) return;
+      const cls = variant === 'left' ? 'reveal-left'
+        : variant === 'right' ? 'reveal-right'
+        : variant === 'scale' ? 'reveal-scale'
+        : 'reveal-hidden';
+      el.classList.add(cls);
+      const obs = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) { el.classList.add('reveal-visible'); obs.unobserve(el); } },
+        { threshold: 0.12, rootMargin: '0px 0px -48px 0px' }
+      );
+      obs.observe(el);
+      return () => obs.disconnect();
+    }, [variant]);
+    return ref;
+  };
+
+  // reveal refs
+  const heroBadgeRef   = useReveal('hidden');
+  const heroTitleRef   = useReveal('hidden');
+  const heroSubRef     = useReveal('hidden');
+  const heroBannerRef  = useReveal('hidden');
+  const heroCtasRef    = useReveal('hidden');
+  const heroStatsRef   = useReveal('hidden');
+  const howItWorksRef  = useReveal('hidden');
+  const aboutLeftRef   = useReveal('left');
+  const aboutRightRef  = useReveal('right');
+  const servicesHdrRef = useReveal('hidden');
+  const whyHdrRef      = useReveal('hidden');
+  const galleryHdrRef  = useReveal('hidden');
+  const reviewsHdrRef  = useReveal('hidden');
+  const calcRef        = useReveal('scale');
+  const ambassadorRef  = useReveal('hidden');
+  const contactLeftRef = useReveal('left');
+  const contactRightRef= useReveal('right');
+  const faqRef         = useReveal('hidden');
 
   // Listen to custom navigation events from Header (e.g. Explore dropdown)
   useEffect(() => {
@@ -537,7 +578,12 @@ export const HomePage: React.FC<Props> = ({
   return (
     <div className="space-y-16 pb-20">
       {/* 1. Live Verified Activity Ticker (Animated Marquee) */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-sky-950 via-slate-900 to-sky-950 text-sky-100 py-2.5 px-4 rounded-xl shadow-xs border border-sky-800/40">
+      <motion.div
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+        className="relative overflow-hidden bg-gradient-to-r from-sky-950 via-slate-900 to-sky-950 text-sky-100 py-2.5 px-4 rounded-xl shadow-xs border border-sky-800/40"
+      >
         <div className="flex items-center gap-3">
           <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-sky-500/20 border border-sky-400/30 text-sky-300 text-[11px] font-bold tracking-wide uppercase">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -562,7 +608,7 @@ export const HomePage: React.FC<Props> = ({
             </motion.div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* 2. Hero Section: Welcome to Coolvengers - Your Comfort, Our Expertise */}
       <section id="home" className="relative rounded-3xl border border-slate-200/90 bg-white overflow-hidden shadow-sm scroll-mt-24">
@@ -612,35 +658,39 @@ export const HomePage: React.FC<Props> = ({
 
         <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch min-h-[560px]">
           {/* Left Column: Headline, Subheadline & Primary Actions */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="lg:col-span-7 p-8 sm:p-12 lg:p-14 flex flex-col justify-between z-10"
-          >
+          <div className="lg:col-span-7 p-8 sm:p-12 lg:p-14 flex flex-col justify-between z-10">
             <div>
-              {/* Top Tagline Badge from coolvengers.in */}
-              <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200/90 text-sky-900 text-xs font-semibold mb-4 shadow-2xs">
+              {/* Top Tagline Badge */}
+              <div
+                ref={heroBadgeRef}
+                className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200/90 text-sky-900 text-xs font-semibold mb-4 shadow-2xs"
+                style={{ transitionDelay: '0ms' }}
+              >
                 <span className="w-2 h-2 rounded-full bg-sky-600 animate-ping" />
                 <span className="font-bold text-sky-700">WELCOME TO COOLVENGERS</span>
                 <span className="text-slate-400">&middot;</span>
                 <span className="text-slate-600">Your Comfort, Our Expertise</span>
               </div>
 
-              {/* Live Headline from coolvengers.in */}
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight leading-[1.12]">
-                Expert AC Services for Your Comfort in{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-500">
-                  Chennai
-                </span>
-              </h1>
+              {/* Live Headline */}
+              <div ref={heroTitleRef} style={{ transitionDelay: '80ms' }}>
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight leading-[1.12]">
+                  Expert AC Services for Your Comfort in{' '}
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-500">
+                    Chennai
+                  </span>
+                </h1>
+              </div>
 
-              {/* Exact Subheadline from coolvengers.in */}
-              <p className="mt-4 text-sm sm:text-base text-slate-600 max-w-xl leading-relaxed">
-                We are your trusted AC service provider in Chennai, dedicated to delivering exceptional installation, maintenance, and repair services for all types of air conditioners.
-              </p>
+              {/* Subheadline */}
+              <div ref={heroSubRef} style={{ transitionDelay: '160ms' }}>
+                <p className="mt-4 text-sm sm:text-base text-slate-600 max-w-xl leading-relaxed">
+                  We are your trusted AC service provider in Chennai, dedicated to delivering exceptional installation, maintenance, and repair services for all types of air conditioners.
+                </p>
+              </div>
 
-              {/* Special Live Refer & Earn Offer Banner matching coolvengers.in */}
+              {/* Refer & Earn Banner */}
+              <div ref={heroBannerRef} style={{ transitionDelay: '240ms' }}>
               <div className="mt-5 p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-700 flex items-center justify-center shrink-0">
@@ -658,16 +708,17 @@ export const HomePage: React.FC<Props> = ({
                   Refer Now
                 </button>
               </div>
+              </div>
             </div>
 
             {/* CTAs */}
             <div className="mt-8 space-y-6">
-              <div className="flex flex-wrap items-center gap-3">
+              <div ref={heroCtasRef} style={{ transitionDelay: '320ms' }} className="flex flex-wrap items-center gap-3">
                 <motion.a
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.97 }}
                   href="#contact"
-                  className="px-6 py-3.5 rounded-xl bg-sky-900 hover:bg-sky-800 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center gap-2.5 cursor-pointer"
+                  className="btn-shimmer px-6 py-3.5 rounded-xl bg-sky-900 hover:bg-sky-800 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center gap-2.5 cursor-pointer"
                 >
                   <Wrench className="w-4 h-4 text-sky-400" />
                   Book Doorstep AC Service
@@ -675,8 +726,8 @@ export const HomePage: React.FC<Props> = ({
                 </motion.a>
 
                 <motion.a
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.97 }}
                   href="#services"
                   className="px-5 py-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm transition-colors flex items-center gap-2 border border-slate-200 cursor-pointer"
                 >
@@ -684,7 +735,9 @@ export const HomePage: React.FC<Props> = ({
                   Explore Services
                 </motion.a>
 
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.97 }}
                   onClick={() => {
                     if (currentUser) {
                       onGoToPortal();
@@ -696,37 +749,38 @@ export const HomePage: React.FC<Props> = ({
                 >
                   <Sparkles className="w-4 h-4 text-sky-600" />
                   Ambassador Club (Earn ₹100)
-                </button>
+                </motion.button>
               </div>
 
-              {/* 4 Stats Cards from coolvengers.in */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-slate-100">
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="text-xl sm:text-2xl font-black text-sky-700 font-mono">4+</div>
-                  <div className="text-[11px] font-medium text-slate-600 mt-0.5">Years Experience</div>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="text-xl sm:text-2xl font-black text-sky-700 font-mono">850+</div>
-                  <div className="text-[11px] font-medium text-slate-600 mt-0.5">Happy Customers</div>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="text-xl sm:text-2xl font-black text-sky-700 font-mono">10+</div>
-                  <div className="text-[11px] font-medium text-slate-600 mt-0.5">Services Offered</div>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="text-xl sm:text-2xl font-black text-sky-700 font-mono">15+</div>
-                  <div className="text-[11px] font-medium text-slate-600 mt-0.5">Expert Technicians</div>
-                </div>
+              {/* 4 Stats Cards */}
+              <div ref={heroStatsRef} style={{ transitionDelay: '400ms' }} className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-slate-100">
+                {[
+                  { val: '4+', label: 'Years Experience' },
+                  { val: '850+', label: 'Happy Customers' },
+                  { val: '10+', label: 'Services Offered' },
+                  { val: '15+', label: 'Expert Technicians' },
+                ].map((stat, i) => (
+                  <motion.div
+                    key={stat.val}
+                    initial={{ opacity: 0, scale: 0.85, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ duration: 0.45, delay: 0.7 + i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                    className="p-3 rounded-xl bg-slate-50 border border-slate-100 hover:border-sky-200 hover:bg-sky-50/40 transition-colors"
+                  >
+                    <div className="text-xl sm:text-2xl font-black text-sky-700 font-mono">{stat.val}</div>
+                    <div className="text-[11px] font-medium text-slate-600 mt-0.5">{stat.label}</div>
+                  </motion.div>
+                ))}
               </div>
             </div>
-          </motion.div>
+          </div>
 
           {/* Right Column: Hero Visual with Real Work Badge */}
           <div className="lg:col-span-5 relative min-h-[340px] lg:min-h-full overflow-hidden bg-slate-100">
             <img
               src={heroImage}
               alt="Coolvengers AC cooling comfort in Chennai"
-              className="w-full h-full object-cover object-center scale-105 hover:scale-100 transition-transform duration-1000"
+              className="hero-image-reveal w-full h-full object-cover object-center scale-105 hover:scale-100 transition-transform duration-1000"
             />
             <div className="absolute inset-0 bg-gradient-to-t lg:bg-gradient-to-r from-white via-white/10 to-transparent pointer-events-none" />
 
@@ -734,8 +788,8 @@ export const HomePage: React.FC<Props> = ({
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4, duration: 0.6 }}
-              className="absolute top-6 right-6 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl p-3.5 shadow-lg max-w-[240px] text-left"
+              transition={{ delay: 0.7, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              className="animate-float absolute top-6 right-6 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl p-3.5 shadow-lg max-w-[240px] text-left"
             >
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold text-xs">
@@ -752,8 +806,8 @@ export const HomePage: React.FC<Props> = ({
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.6, duration: 0.6 }}
-              className="absolute bottom-6 right-6 left-6 sm:left-auto bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl p-4 shadow-xl max-w-sm text-left"
+              transition={{ delay: 0.9, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              className="animate-float-delayed absolute bottom-6 right-6 left-6 sm:left-auto bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl p-4 shadow-xl max-w-sm text-left"
             >
               <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
                 <Award className="w-4 h-4 text-sky-600" />
@@ -767,9 +821,9 @@ export const HomePage: React.FC<Props> = ({
         </div>
       </section>
 
-      {/* 3. How It Works (The 3-Step Process from coolvengers.in) */}
+      {/* 3. How It Works */}
       <section className="space-y-6">
-        <div className="text-center max-w-xl mx-auto space-y-1">
+        <div ref={howItWorksRef} className="text-center max-w-xl mx-auto space-y-1">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-800 text-xs font-bold border border-sky-200">
             <Settings className="w-3.5 h-3.5 text-sky-600" />
             HOW IT WORKS
@@ -784,7 +838,11 @@ export const HomePage: React.FC<Props> = ({
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <motion.div
-            whileHover={{ y: -4 }}
+            initial={{ opacity: 0, y: 28 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-48px' }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            whileHover={{ y: -6, boxShadow: '0 12px 28px -8px rgba(14,165,233,0.18)' }}
             className="p-6 sm:p-7 rounded-2xl bg-white border border-slate-200 shadow-xs relative overflow-hidden group hover:border-sky-300 transition-all text-left"
           >
             <div className="text-4xl font-black text-sky-100 font-mono absolute top-4 right-5 select-none">
@@ -800,7 +858,11 @@ export const HomePage: React.FC<Props> = ({
           </motion.div>
 
           <motion.div
-            whileHover={{ y: -4 }}
+            initial={{ opacity: 0, y: 28 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-48px' }}
+            transition={{ duration: 0.6, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
+            whileHover={{ y: -6, boxShadow: '0 12px 28px -8px rgba(14,165,233,0.18)' }}
             className="p-6 sm:p-7 rounded-2xl bg-white border border-slate-200 shadow-xs relative overflow-hidden group hover:border-sky-300 transition-all text-left"
           >
             <div className="text-4xl font-black text-sky-100 font-mono absolute top-4 right-5 select-none">
@@ -816,7 +878,11 @@ export const HomePage: React.FC<Props> = ({
           </motion.div>
 
           <motion.div
-            whileHover={{ y: -4 }}
+            initial={{ opacity: 0, y: 28 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-48px' }}
+            transition={{ duration: 0.6, delay: 0.24, ease: [0.22, 1, 0.36, 1] }}
+            whileHover={{ y: -6, boxShadow: '0 12px 28px -8px rgba(14,165,233,0.18)' }}
             className="p-6 sm:p-7 rounded-2xl bg-white border border-slate-200 shadow-xs relative overflow-hidden group hover:border-sky-300 transition-all text-left"
           >
             <div className="text-4xl font-black text-sky-100 font-mono absolute top-4 right-5 select-none">
@@ -835,8 +901,8 @@ export const HomePage: React.FC<Props> = ({
 
       {/* 4. About Us Section (#about) */}
       <section id="about" className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-10 lg:p-12 shadow-sm scroll-mt-24">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-          <div className="lg:col-span-6 space-y-5">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center" style={{ overflow: 'hidden' }}>
+          <div ref={aboutLeftRef} className="lg:col-span-6 space-y-5">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-800 text-xs font-bold border border-sky-200">
               <Award className="w-3.5 h-3.5 text-sky-600" />
               ABOUT COOLVENGERS AIRCONS
@@ -886,19 +952,32 @@ export const HomePage: React.FC<Props> = ({
             </div>
           </div>
 
-          <div className="lg:col-span-6 relative rounded-2xl overflow-hidden border border-slate-200 shadow-md">
-            <img
-              src={technicianImage}
-              alt="Coolvengers AC technician servicing cooling unit in Chennai"
-              className="w-full h-full object-cover object-center max-h-[420px]"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end p-6">
-              <div className="text-white">
-                <div className="text-xs font-bold text-sky-300 uppercase tracking-wider">
-                  Madipakkam Headquarters &middot; Chennai Hub
-                </div>
-                <div className="text-sm font-semibold text-slate-100 mt-1">
-                  15+ Verified Technicians Ready to Dispatch in Under 45 Minutes.
+          <div ref={aboutRightRef} className="lg:col-span-6 relative rounded-2xl overflow-hidden border border-slate-200 shadow-md bg-slate-100">
+            {/* Two-image collage layout */}
+            <div className="grid grid-rows-2 h-full min-h-[380px] max-h-[440px] gap-1">
+              <div className="relative overflow-hidden">
+                <img
+                  src="/src/assets/images/about_technician_install.jpg"
+                  alt="Coolvengers technician installing split AC unit indoors"
+                  className="w-full h-full object-cover object-center hover:scale-105 transition-transform duration-700"
+                />
+              </div>
+              <div className="relative overflow-hidden">
+                <img
+                  src="/src/assets/images/about_technician_gas.jpg"
+                  alt="Coolvengers technician calibrating refrigerant gas on outdoor AC unit"
+                  className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-700"
+                />
+                {/* Caption overlay on bottom image */}
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end p-5">
+                  <div className="text-white">
+                    <div className="text-xs font-bold text-sky-300 uppercase tracking-wider">
+                      Madipakkam Headquarters &middot; Chennai Hub
+                    </div>
+                    <div className="text-sm font-semibold text-slate-100 mt-1">
+                      15+ Verified Technicians Ready to Dispatch in Under 45 Minutes.
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -906,9 +985,9 @@ export const HomePage: React.FC<Props> = ({
         </div>
       </section>
 
-      {/* 5. Explore Our Services with 3 Live Categories (#services) */}
+      {/* 5. Explore Our Services (#services) */}
       <section id="services" className="space-y-8 scroll-mt-24">
-        <div className="text-center max-w-2xl mx-auto space-y-2">
+        <div ref={servicesHdrRef} className="text-center max-w-2xl mx-auto space-y-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-800 text-xs font-bold border border-sky-200">
             <Wrench className="w-3.5 h-3.5 text-sky-600" />
             EXPLORE OUR SERVICES
@@ -1068,16 +1147,20 @@ export const HomePage: React.FC<Props> = ({
                 </div>
 
                 <div className="pt-4 flex flex-wrap gap-3">
-                  <a
+                  <motion.a
+                    whileHover={{ scale: 1.04, y: -2 }}
+                    whileTap={{ scale: 0.97 }}
                     href="#contact"
                     onClick={() => setBookingService(activeService.title)}
-                    className="px-6 py-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs sm:text-sm shadow-xs transition-colors flex items-center gap-2 cursor-pointer"
+                    className="btn-shimmer px-6 py-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs sm:text-sm shadow-xs transition-colors flex items-center gap-2 cursor-pointer"
                   >
                     Book This Service
                     <ArrowRight className="w-4 h-4" />
-                  </a>
+                  </motion.a>
 
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.04, y: -2 }}
+                    whileTap={{ scale: 0.97 }}
                     onClick={() => {
                       if (currentUser) {
                         onOpenSubmitLead();
@@ -1089,7 +1172,7 @@ export const HomePage: React.FC<Props> = ({
                   >
                     <Sparkles className="w-4 h-4 text-amber-500" />
                     Refer Client (Earn ₹100)
-                  </button>
+                  </motion.button>
                 </div>
               </div>
 
@@ -1116,9 +1199,9 @@ export const HomePage: React.FC<Props> = ({
         </div>
       </section>
 
-      {/* 6. Why Choose Coolvengers Aircons? Section */}
+      {/* 6. Why Choose Coolvengers Aircons? */}
       <section className="space-y-6">
-        <div className="text-center max-w-xl mx-auto space-y-1">
+        <div ref={whyHdrRef} className="text-center max-w-xl mx-auto space-y-1">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-800 text-xs font-bold border border-sky-200">
             <Award className="w-3.5 h-3.5 text-sky-600" />
             WHY CHOOSE US
@@ -1166,7 +1249,11 @@ export const HomePage: React.FC<Props> = ({
           ].map((item, idx) => (
             <motion.div
               key={idx}
-              whileHover={{ y: -4 }}
+              initial={{ opacity: 0, y: 28 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-48px' }}
+              transition={{ duration: 0.55, delay: idx * 0.08, ease: [0.22, 1, 0.36, 1] }}
+              whileHover={{ y: -6, boxShadow: '0 12px 28px -8px rgba(14,165,233,0.14)' }}
               className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs hover:border-sky-300 transition-all text-left flex flex-col justify-between"
             >
               <div>
@@ -1183,7 +1270,7 @@ export const HomePage: React.FC<Props> = ({
 
       {/* 7. Work Gallery Showcase (#gallery) */}
       <section id="gallery" className="space-y-6 scroll-mt-24">
-        <div className="text-center max-w-xl mx-auto space-y-1">
+        <div ref={galleryHdrRef} className="text-center max-w-xl mx-auto space-y-1">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-800 text-xs font-bold border border-sky-200">
             <Camera className="w-3.5 h-3.5 text-sky-600" />
             WORK GALLERY
@@ -1244,9 +1331,13 @@ export const HomePage: React.FC<Props> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredGallery.map((item, idx) => (
             <motion.div
-              key={idx}
-              whileHover={{ y: -4 }}
-              className="rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-xs flex flex-col group"
+              key={`${item.category}-${idx}`}
+              initial={{ opacity: 0, y: 24, scale: 0.97 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: true, margin: '-32px' }}
+              transition={{ duration: 0.5, delay: idx * 0.07, ease: [0.22, 1, 0.36, 1] }}
+              whileHover={{ y: -6 }}
+              className="rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-xs flex flex-col group cursor-pointer"
             >
               <div className="relative h-48 overflow-hidden bg-slate-100">
                 <img
@@ -1268,7 +1359,7 @@ export const HomePage: React.FC<Props> = ({
 
       {/* 8. Customer Testimonials & Reviews (#reviews) */}
       <section id="reviews" className="space-y-6 scroll-mt-24">
-        <div className="text-center max-w-xl mx-auto space-y-1">
+        <div ref={reviewsHdrRef} className="text-center max-w-xl mx-auto space-y-1">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-800 text-xs font-bold border border-sky-200">
             <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
             CUSTOMER REVIEWS
@@ -1285,8 +1376,12 @@ export const HomePage: React.FC<Props> = ({
           {testimonials.map((t, idx) => (
             <motion.div
               key={idx}
-              whileHover={{ y: -4 }}
-              className="p-6 sm:p-7 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow text-left"
+              initial={{ opacity: 0, y: 28 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-32px' }}
+              transition={{ duration: 0.55, delay: idx * 0.09, ease: [0.22, 1, 0.36, 1] }}
+              whileHover={{ y: -6, boxShadow: '0 16px 36px -10px rgba(14,165,233,0.13)' }}
+              className="p-6 sm:p-7 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between hover:shadow-md transition-all text-left"
             >
               <div>
                 <div className="flex items-center gap-3.5 mb-4">
@@ -1321,7 +1416,7 @@ export const HomePage: React.FC<Props> = ({
       </section>
 
       {/* 9. Interactive AC Chill & Power Calculator */}
-      <section className="rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-50/70 via-white to-blue-50/40 p-6 sm:p-10 shadow-xs">
+      <section ref={calcRef} className="rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-50/70 via-white to-blue-50/40 p-6 sm:p-10 shadow-xs">
         <div className="max-w-4xl mx-auto">
           <div className="text-center max-w-2xl mx-auto mb-8">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100/80 text-sky-900 text-xs font-bold mb-3 border border-sky-200">
@@ -1444,7 +1539,7 @@ export const HomePage: React.FC<Props> = ({
       </section>
 
       {/* 10. Ambassador "Refer & Earn ₹100" Section & Simulator */}
-      <section className="relative rounded-3xl overflow-hidden border border-amber-200 bg-gradient-to-br from-amber-50/80 via-white to-sky-50/50 p-8 sm:p-12 shadow-sm">
+      <section ref={ambassadorRef} className="relative rounded-3xl overflow-hidden border border-amber-200 bg-gradient-to-br from-amber-50/80 via-white to-sky-50/50 p-8 sm:p-12 shadow-sm">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           <div className="lg:col-span-7 space-y-4 text-left">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 text-amber-950 font-bold text-xs border border-amber-300 shadow-2xs">
@@ -1484,13 +1579,15 @@ export const HomePage: React.FC<Props> = ({
 
             <div className="flex flex-wrap items-center gap-3 pt-2">
               {currentUser?.role === 'AMBASSADOR' ? (
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.04, y: -2 }}
+                  whileTap={{ scale: 0.97 }}
                   onClick={onOpenSubmitLead}
-                  className="px-6 py-3.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs sm:text-sm shadow-md shadow-sky-600/20 transition-all flex items-center gap-2 cursor-pointer"
+                  className="btn-shimmer px-6 py-3.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs sm:text-sm shadow-md shadow-sky-600/20 transition-all flex items-center gap-2 cursor-pointer"
                 >
                   <PlusCircle className="w-4 h-4" />
                   Submit AC Lead Now (₹100)
-                </button>
+                </motion.button>
               ) : currentUser?.role === 'SUPER_ADMIN' ? (
                 <button
                   onClick={onGoToPortal}
@@ -1566,8 +1663,8 @@ export const HomePage: React.FC<Props> = ({
 
       {/* 11. Doorstep AC Booking & Direct Contact (#contact / #book-service) */}
       <section id="contact" className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-10 shadow-sm scroll-mt-24">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start text-left">
-          <div className="lg:col-span-5 space-y-5">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start text-left" style={{ overflow: 'hidden' }}>
+          <div ref={contactLeftRef} className="lg:col-span-5 space-y-5">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-800 text-xs font-bold border border-sky-200">
               <Clock className="w-3.5 h-3.5 text-sky-600" />
               CONTACT US &middot; DOORSTEP AC BOOKING
@@ -1651,7 +1748,7 @@ export const HomePage: React.FC<Props> = ({
           </div>
 
           {/* Doorstep Booking Form */}
-          <div className="lg:col-span-7 bg-slate-50 p-6 sm:p-8 rounded-2xl border border-slate-200">
+          <div ref={contactRightRef} className="lg:col-span-7 bg-slate-50 p-6 sm:p-8 rounded-2xl border border-slate-200">
             {bookingSubmitted ? (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -1762,13 +1859,15 @@ export const HomePage: React.FC<Props> = ({
                   />
                 </div>
 
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.02, y: -1 }}
+                  whileTap={{ scale: 0.98 }}
                   type="submit"
-                  className="w-full py-3.5 px-4 rounded-xl bg-sky-900 hover:bg-sky-800 text-white font-bold text-xs sm:text-sm shadow-sm transition-colors flex items-center justify-center gap-2 cursor-pointer mt-2"
+                  className="btn-shimmer w-full py-3.5 px-4 rounded-xl bg-sky-900 hover:bg-sky-800 text-white font-bold text-xs sm:text-sm shadow-sm transition-colors flex items-center justify-center gap-2 cursor-pointer mt-2"
                 >
                   <Send className="w-4 h-4 text-sky-400" />
                   Confirm AC Doorstep Visit
-                </button>
+                </motion.button>
               </form>
             )}
           </div>
@@ -1776,7 +1875,7 @@ export const HomePage: React.FC<Props> = ({
       </section>
 
       {/* 12. Interactive FAQ Accordion */}
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-10 shadow-xs">
+      <section ref={faqRef} className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-10 shadow-xs">
         <div className="max-w-3xl mx-auto space-y-6">
           <div className="text-center space-y-1">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-800 text-xs font-bold">
@@ -1829,36 +1928,42 @@ export const HomePage: React.FC<Props> = ({
       {/* 13. Floating Quick Contact Action Buttons (Bottom Right) */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2.5 items-end">
         {/* Floating Call Button */}
-        <a
+        <motion.a
+          whileHover={{ scale: 1.12 }}
+          whileTap={{ scale: 0.93 }}
           href="tel:+916380873802"
-          className="w-11 h-11 rounded-full bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center shadow-lg transition-transform hover:scale-105"
+          className="w-11 h-11 rounded-full bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center shadow-lg transition-colors"
           title="Call Coolvengers Hotline"
         >
           <Phone className="w-5 h-5 text-sky-400" />
-        </a>
+        </motion.a>
 
         {/* Floating Email Button */}
-        <a
+        <motion.a
+          whileHover={{ scale: 1.12 }}
+          whileTap={{ scale: 0.93 }}
           href="mailto:gokul@coolvengers.in"
-          className="w-11 h-11 rounded-full bg-sky-600 hover:bg-sky-500 text-white flex items-center justify-center shadow-lg transition-transform hover:scale-105"
+          className="w-11 h-11 rounded-full bg-sky-600 hover:bg-sky-500 text-white flex items-center justify-center shadow-lg transition-colors"
           title="Email Coolvengers"
         >
           <Mail className="w-5 h-5 text-white" />
-        </a>
+        </motion.a>
 
         {/* Floating WhatsApp Button */}
-        <a
+        <motion.a
+          whileHover={{ scale: 1.14 }}
+          whileTap={{ scale: 0.93 }}
           href="https://wa.me/916380873802?text=Hi%20Coolvengers,%20I%20would%20like%20to%20inquire%20about%20AC%20services."
           target="_blank"
           rel="noreferrer"
-          className="w-13 h-13 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white flex items-center justify-center shadow-xl transition-transform hover:scale-110 relative group"
+          className="w-13 h-13 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white flex items-center justify-center shadow-xl transition-colors relative group"
           title="Chat with Coolvengers on WhatsApp"
         >
           <MessageCircle className="w-7 h-7" />
           <span className="absolute right-15 bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-md">
             Chat on WhatsApp
           </span>
-        </a>
+        </motion.a>
       </div>
     </div>
   );
