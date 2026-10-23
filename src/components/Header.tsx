@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ChevronDown, PlusCircle, Check, LogIn, Menu, X } from 'lucide-react';
+import { ChevronDown, PlusCircle, Check, LogIn, Menu, X, Play } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User } from '../types/index.js';
 import { api } from '../services/api.js';
@@ -17,7 +17,7 @@ interface Props {
   onLogout?: () => void;
 }
 
-type NavItem = 'home' | 'explore' | 'about' | 'services' | 'reviews' | 'gallery' | 'contact' | 'portal';
+type NavItem = 'home' | 'explore' | 'about' | 'video' | 'services' | 'reviews' | 'gallery' | 'contact' | 'portal';
 
 export const Header: React.FC<Props> = ({
   currentView,
@@ -38,6 +38,7 @@ export const Header: React.FC<Props> = ({
     if (typeof window !== 'undefined') {
       const hash = window.location.hash;
       if (hash === '#about') return 'about';
+      if (hash === '#service-video') return 'video';
       if (hash === '#services' || hash === '#installation' || hash === '#maintenance' || hash === '#repair') return 'services';
       if (hash === '#reviews') return 'reviews';
       if (hash === '#gallery') return 'gallery';
@@ -95,6 +96,7 @@ export const Header: React.FC<Props> = ({
       const reviewsEl = document.getElementById('reviews');
       const galleryEl = document.getElementById('gallery');
       const servicesEl = document.getElementById('services');
+      const videoEl = document.getElementById('service-video');
       const aboutEl = document.getElementById('about');
 
       if (contactEl && scrollPos >= contactEl.offsetTop - 80) {
@@ -105,6 +107,8 @@ export const Header: React.FC<Props> = ({
         setActiveNav('gallery');
       } else if (servicesEl && scrollPos >= servicesEl.offsetTop - 80) {
         setActiveNav('services');
+      } else if (videoEl && scrollPos >= videoEl.offsetTop - 80) {
+        setActiveNav('video');
       } else if (aboutEl && scrollPos >= aboutEl.offsetTop - 80) {
         setActiveNav('about');
       } else {
@@ -131,6 +135,7 @@ export const Header: React.FC<Props> = ({
     const elementId =
       target === 'contact' ? 'contact' :
       target === 'about' ? 'about' :
+      target === 'video' ? 'service-video' :
       target === 'reviews' ? 'reviews' :
       target === 'gallery' ? 'gallery' :
       target === 'services' ? 'services' :
@@ -158,6 +163,7 @@ export const Header: React.FC<Props> = ({
 
     const navKey: NavItem =
       target === 'about' ? 'about' :
+      target === 'video' ? 'video' :
       target === 'reviews' ? 'reviews' :
       target === 'gallery' ? 'gallery' :
       target === 'contact' ? 'contact' :
@@ -266,7 +272,17 @@ export const Header: React.FC<Props> = ({
                     className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 hover:bg-sky-50 hover:text-sky-700 flex items-center justify-between transition-colors cursor-pointer"
                   >
                     <span>AC Repair</span>
-                    <span className="text-[10px] font-bold text-sky-600 bg-sky-100/70 px-1.5 py-0.5 rounded">PCB & Leakage</span>
+                    <span className="text-[10px] font-bold text-sky-600 bg-sky-100/70 px-1.5 py-0.5 rounded">PCB &amp; Leakage</span>
+                  </button>
+                  <button
+                    onClick={() => handleNavClick('video')}
+                    className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 flex items-center justify-between transition-colors cursor-pointer border-t border-slate-100"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <Play className="w-2.5 h-2.5 text-emerald-600 fill-emerald-600" />
+                      <span>Watch Field Work Video</span>
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">42s</span>
                   </button>
                 </motion.div>
               )}
@@ -277,6 +293,16 @@ export const Header: React.FC<Props> = ({
               className={getNavClass('about')}
             >
               About Us
+            </button>
+
+            <button
+              onClick={() => handleNavClick('video')}
+              className={getNavClass('video')}
+            >
+              <span className="flex items-center gap-1.5">
+                <Play className="w-2.5 h-2.5 fill-emerald-500 text-emerald-500" />
+                Live Video
+              </span>
             </button>
 
             <button
@@ -541,6 +567,23 @@ export const Header: React.FC<Props> = ({
             >
               <span>About Us</span>
               {activeNav === 'about' && <span className="w-2 h-2 rounded-full bg-sky-600" />}
+            </button>
+
+            <button
+              onClick={() => handleNavClick('video')}
+              className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                activeNav === 'video'
+                  ? 'bg-sky-50 text-sky-600 font-bold border border-sky-100'
+                  : 'text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Play className="w-3.5 h-3.5 text-emerald-600 fill-emerald-600" />
+                <span>Live Service Video</span>
+              </div>
+              <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded border border-emerald-100">
+                42s Demo
+              </span>
             </button>
 
             <button

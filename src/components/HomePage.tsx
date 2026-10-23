@@ -35,6 +35,13 @@ import {
   Settings,
   Flame,
   ShieldAlert,
+  Play,
+  Pause,
+  Volume2,
+  VolumeX,
+  Maximize2,
+  RotateCcw,
+  Video,
 } from 'lucide-react';
 import { User } from '../types/index.js';
 import { CoolvengersLogo } from './CoolvengersLogo.js';
@@ -102,6 +109,72 @@ export const HomePage: React.FC<Props> = ({
   // FAQ Accordion State
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
+  // Video Player State
+  const [videoPlaying, setVideoPlaying] = useState<boolean>(true);
+  const [videoMuted, setVideoMuted] = useState<boolean>(true);
+  const [videoProgress, setVideoProgress] = useState<number>(0);
+  const [videoCurrentTime, setVideoCurrentTime] = useState<number>(0);
+  const [videoDuration, setVideoDuration] = useState<number>(42.3);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
+
+  const togglePlay = () => {
+    if (!videoRef.current) return;
+    if (videoRef.current.paused) {
+      videoRef.current.play().catch(() => {});
+      setVideoPlaying(true);
+    } else {
+      videoRef.current.pause();
+      setVideoPlaying(false);
+    }
+  };
+
+  const toggleMute = () => {
+    if (!videoRef.current) return;
+    const nextMuted = !videoRef.current.muted;
+    videoRef.current.muted = nextMuted;
+    setVideoMuted(nextMuted);
+  };
+
+  const handleTimeUpdate = () => {
+    if (!videoRef.current) return;
+    const cur = videoRef.current.currentTime;
+    const dur = videoRef.current.duration || 42.3;
+    setVideoCurrentTime(cur);
+    setVideoDuration(dur);
+    setVideoProgress((cur / dur) * 100);
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!videoRef.current) return;
+    const val = parseFloat(e.target.value);
+    const dur = videoRef.current.duration || 42.3;
+    videoRef.current.currentTime = (val / 100) * dur;
+    setVideoProgress(val);
+  };
+
+  const restartVideo = () => {
+    if (!videoRef.current) return;
+    videoRef.current.currentTime = 0;
+    videoRef.current.play().catch(() => {});
+    setVideoPlaying(true);
+  };
+
+  const toggleFullscreen = () => {
+    if (!videoContainerRef.current) return;
+    if (!document.fullscreenElement) {
+      videoContainerRef.current.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  };
+
+  const formatVideoTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
   const heroImage = '/src/assets/images/coolvengers_home_hero_1792133261520.jpg';
   const technicianImage = '/src/assets/images/coolvengers_technician_work_1792133261366.jpg';
 
@@ -136,6 +209,9 @@ export const HomePage: React.FC<Props> = ({
   const howItWorksRef  = useReveal('hidden');
   const aboutLeftRef   = useReveal('left');
   const aboutRightRef  = useReveal('right');
+  const videoHdrRef    = useReveal('hidden');
+  const videoLeftRef   = useReveal('left');
+  const videoRightRef  = useReveal('right');
   const servicesHdrRef = useReveal('hidden');
   const whyHdrRef      = useReveal('hidden');
   const galleryHdrRef  = useReveal('hidden');
@@ -728,6 +804,19 @@ export const HomePage: React.FC<Props> = ({
                 <motion.a
                   whileHover={{ scale: 1.03, y: -2 }}
                   whileTap={{ scale: 0.97 }}
+                  href="#service-video"
+                  className="px-5 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer group"
+                >
+                  <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Play className="w-2.5 h-2.5 fill-white text-white ml-0.5" />
+                  </div>
+                  <span>Watch Service in Action</span>
+                  <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded-full font-mono font-medium">42s</span>
+                </motion.a>
+
+                <motion.a
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.97 }}
                   href="#services"
                   className="px-5 py-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm transition-colors flex items-center gap-2 border border-slate-200 cursor-pointer"
                 >
@@ -985,7 +1074,293 @@ export const HomePage: React.FC<Props> = ({
         </div>
       </section>
 
-      {/* 5. Explore Our Services (#services) */}
+      {/* 5. Live Service Video Showcase (#service-video) */}
+      <section id="service-video" className="scroll-mt-24 space-y-6">
+        <div ref={videoHdrRef} className="text-center max-w-2xl mx-auto space-y-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200 shadow-2xs">
+            <Video className="w-3.5 h-3.5 text-emerald-600" />
+            LIVE WORK DEMONSTRATION &middot; CHENNAI DOORSTEP
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            See Our Certified Technicians in Action
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600">
+            Watch our verified technician perform precision AC servicing, high-pressure hydro coil wash, and cooling performance calibration right at a Chennai customer&apos;s home.
+          </p>
+        </div>
+
+        <div className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-10 lg:p-12 shadow-sm overflow-hidden relative">
+          {/* Subtle Ambient Glow */}
+          <div className="absolute -top-32 -right-32 w-80 h-80 rounded-full bg-sky-100/60 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-32 -left-32 w-80 h-80 rounded-full bg-emerald-100/50 blur-3xl pointer-events-none" />
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center relative z-10">
+            {/* Left: Smartphone Mockup / Vertical Video Player */}
+            <div ref={videoLeftRef} className="lg:col-span-5 flex justify-center">
+              <div
+                ref={videoContainerRef}
+                className="relative w-full max-w-[340px] sm:max-w-[360px] rounded-[2.6rem] p-3 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 border-4 border-slate-800/90 shadow-2xl transition-all hover:shadow-sky-500/10"
+              >
+                {/* Phone Top Notch / Dynamic Island */}
+                <div className="flex items-center justify-between px-5 pt-1.5 pb-2">
+                  <div className="text-[10px] font-mono text-slate-400 font-semibold tracking-wide">
+                    COOLVENGERS LIVE
+                  </div>
+                  <div className="w-20 h-4 bg-slate-900 rounded-full border border-slate-800 flex items-center justify-center gap-1.5 px-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[8px] font-bold text-slate-300 uppercase tracking-wider">
+                      REC 42s
+                    </span>
+                  </div>
+                  <div className="text-[10px] font-semibold text-emerald-400">
+                    1080p
+                  </div>
+                </div>
+
+                {/* Video Screen Container */}
+                <div className="relative aspect-[9/16] rounded-[2rem] overflow-hidden bg-black group select-none shadow-inner">
+                  <video
+                    ref={videoRef}
+                    src="/coolvengers-video.mp4"
+                    playsInline
+                    autoPlay
+                    muted={videoMuted}
+                    loop
+                    onTimeUpdate={handleTimeUpdate}
+                    onPlay={() => setVideoPlaying(true)}
+                    onPause={() => setVideoPlaying(false)}
+                    className="w-full h-full object-cover cursor-pointer"
+                    onClick={togglePlay}
+                  />
+
+                  {/* Top Overlay Badges */}
+                  <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none z-20">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-950/75 backdrop-blur-md border border-white/10 text-white text-[11px] font-bold shadow-xs">
+                      <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                      <span>Chennai Field Job</span>
+                    </div>
+
+                    <div className="px-2.5 py-1 rounded-full bg-slate-950/75 backdrop-blur-md border border-white/10 text-sky-300 text-[11px] font-semibold">
+                      Madipakkam Hub
+                    </div>
+                  </div>
+
+                  {/* Big Center Play/Pause Overlay Button */}
+                  {!videoPlaying && (
+                    <button
+                      type="button"
+                      onClick={togglePlay}
+                      className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-slate-950/70 hover:bg-slate-900/90 backdrop-blur-md text-white border border-white/30 flex items-center justify-center shadow-2xl transition-all hover:scale-110 cursor-pointer z-20"
+                      aria-label="Play Video"
+                    >
+                      <Play className="w-7 h-7 fill-white text-white ml-1" />
+                    </button>
+                  )}
+
+                  {/* Unmute Prompt Banner if muted */}
+                  {videoMuted && (
+                    <button
+                      type="button"
+                      onClick={toggleMute}
+                      className="absolute bottom-16 left-4 right-4 z-20 py-1.5 px-3 rounded-xl bg-slate-900/90 hover:bg-slate-900 text-white text-xs font-semibold backdrop-blur-md border border-white/20 flex items-center justify-center gap-2 shadow-lg transition-transform hover:scale-102 cursor-pointer"
+                    >
+                      <VolumeX className="w-4 h-4 text-amber-400" />
+                      <span>Video is muted. Tap to hear sound!</span>
+                    </button>
+                  )}
+
+                  {/* Bottom Video Controls Overlay */}
+                  <div className="absolute bottom-0 inset-x-0 p-3 pt-8 bg-gradient-to-t from-slate-950/95 via-slate-950/60 to-transparent z-20 flex flex-col gap-2">
+                    {/* Scrubber Progress Bar */}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={videoProgress}
+                        onChange={handleSeek}
+                        className="w-full h-1.5 bg-white/25 rounded-lg appearance-none cursor-pointer accent-sky-400"
+                      />
+                    </div>
+
+                    {/* Controller Action Row */}
+                    <div className="flex items-center justify-between text-white text-xs pt-0.5">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={togglePlay}
+                          className="p-1 rounded-md hover:bg-white/20 transition-colors cursor-pointer"
+                          title={videoPlaying ? 'Pause' : 'Play'}
+                        >
+                          {videoPlaying ? (
+                            <Pause className="w-4 h-4 fill-white" />
+                          ) : (
+                            <Play className="w-4 h-4 fill-white ml-0.5" />
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={toggleMute}
+                          className="p-1 rounded-md hover:bg-white/20 transition-colors cursor-pointer flex items-center gap-1"
+                          title={videoMuted ? 'Unmute' : 'Mute'}
+                        >
+                          {videoMuted ? (
+                            <VolumeX className="w-4 h-4 text-amber-300" />
+                          ) : (
+                            <Volume2 className="w-4 h-4 text-emerald-400" />
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={restartVideo}
+                          className="p-1 rounded-md hover:bg-white/20 transition-colors cursor-pointer"
+                          title="Restart Video"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5 text-slate-300" />
+                        </button>
+
+                        <span className="text-[10px] font-mono text-slate-300 ml-1">
+                          {formatVideoTime(videoCurrentTime)} / {formatVideoTime(videoDuration)}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={toggleFullscreen}
+                        className="p-1 rounded-md hover:bg-white/20 transition-colors cursor-pointer text-slate-300 hover:text-white"
+                        title="Toggle Fullscreen"
+                      >
+                        <Maximize2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom Home Indicator Bar */}
+                <div className="w-28 h-1 bg-slate-700/80 rounded-full mx-auto mt-2.5" />
+              </div>
+            </div>
+
+            {/* Right: Technical Explanation & Service Highlights */}
+            <div ref={videoRightRef} className="lg:col-span-7 space-y-6 text-left">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-bold mb-3">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-sky-600" />
+                  REAL RECORDING &middot; VERIFIED DOORSTEP SERVICE
+                </div>
+                <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-snug">
+                  Precision AC Care You Can See, Measure, and Trust
+                </h3>
+                <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                  Every Coolvengers service call follows a stringent 12-point standardized procedure executed by certified HVAC technicians with minimum 4+ years field experience across Chennai.
+                </p>
+              </div>
+
+              {/* 3 Step-by-Step Breakdown Cards */}
+              <div className="space-y-3.5">
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-sky-300 hover:bg-sky-50/30 transition-all flex items-start gap-3.5">
+                  <div className="w-9 h-9 rounded-xl bg-sky-100 text-sky-700 font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
+                    01
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900">
+                      120-Bar Hydro Jet Evaporator Cleaning
+                    </h4>
+                    <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                      Pressurized water penetrates deep between aluminum cooling coil fins, flushing out years of coastal Chennai dust, airborne fungus, and pet dander without bending fragile fins.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-sky-300 hover:bg-sky-50/30 transition-all flex items-start gap-3.5">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
+                    02
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900">
+                      100% Zero-Splatter Wall &amp; Floor Protection
+                    </h4>
+                    <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                      We fit custom protective service jackets with direct-to-bucket drainage hoses. Your wallpapers, emulsion paint, electrical outlets, and wooden floors remain completely dry.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-sky-300 hover:bg-sky-50/30 transition-all flex items-start gap-3.5">
+                  <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
+                    03
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900">
+                      Digital Pressure &amp; Cooling Drop Verification
+                    </h4>
+                    <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                      Before closing the casing, technicians measure suction pressure, ampere current draw, and verify a minimum 10&deg;C-12&deg;C cooling delta to guarantee immediate ice-cold airflow.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Verified Trust Badges */}
+              <div className="grid grid-cols-3 gap-2.5 pt-2">
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-center">
+                  <div className="text-xs font-bold text-slate-900">30-45 Mins</div>
+                  <div className="text-[10px] text-slate-500">Doorstep Arrival</div>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-center">
+                  <div className="text-xs font-bold text-slate-900">30 Days</div>
+                  <div className="text-[10px] text-slate-500">Service Guarantee</div>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-center">
+                  <div className="text-xs font-bold text-slate-900">100% Genuine</div>
+                  <div className="text-[10px] text-slate-500">Sealed Spares</div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-2 flex flex-wrap items-center gap-3">
+                <motion.a
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.97 }}
+                  href="#contact"
+                  className="btn-shimmer px-6 py-3 rounded-xl bg-sky-900 hover:bg-sky-800 text-white font-bold text-xs sm:text-sm shadow-sm transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <Wrench className="w-4 h-4 text-sky-400" />
+                  Book This Service
+                  <ArrowRight className="w-4 h-4" />
+                </motion.a>
+
+                <motion.a
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.97 }}
+                  href="https://wa.me/916380873802?text=Hi%20Coolvengers,%20I%20watched%20your%20service%20video%20and%20would%20like%20to%20book%20an%20AC%20service."
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm shadow-sm transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  Chat on WhatsApp
+                </motion.a>
+
+                <motion.button
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={currentUser ? onOpenSubmitLead : onOpenRegister}
+                  className="px-4 py-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold text-xs sm:text-sm transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <Sparkles className="w-4 h-4 text-amber-600" />
+                  Refer &amp; Earn ₹100
+                </motion.button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. Explore Our Services (#services) */}
       <section id="services" className="space-y-8 scroll-mt-24">
         <div ref={servicesHdrRef} className="text-center max-w-2xl mx-auto space-y-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-800 text-xs font-bold border border-sky-200">
