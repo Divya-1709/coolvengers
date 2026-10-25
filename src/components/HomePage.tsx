@@ -121,7 +121,7 @@ export const HomePage: React.FC<Props> = ({
   const togglePlay = () => {
     if (!videoRef.current) return;
     if (videoRef.current.paused) {
-      videoRef.current.play().catch(() => {});
+      videoRef.current.play().catch(() => { });
       setVideoPlaying(true);
     } else {
       videoRef.current.pause();
@@ -156,16 +156,16 @@ export const HomePage: React.FC<Props> = ({
   const restartVideo = () => {
     if (!videoRef.current) return;
     videoRef.current.currentTime = 0;
-    videoRef.current.play().catch(() => {});
+    videoRef.current.play().catch(() => { });
     setVideoPlaying(true);
   };
 
   const toggleFullscreen = () => {
     if (!videoContainerRef.current) return;
     if (!document.fullscreenElement) {
-      videoContainerRef.current.requestFullscreen().catch(() => {});
+      videoContainerRef.current.requestFullscreen().catch(() => { });
     } else {
-      document.exitFullscreen().catch(() => {});
+      document.exitFullscreen().catch(() => { });
     }
   };
 
@@ -186,8 +186,8 @@ export const HomePage: React.FC<Props> = ({
       if (!el) return;
       const cls = variant === 'left' ? 'reveal-left'
         : variant === 'right' ? 'reveal-right'
-        : variant === 'scale' ? 'reveal-scale'
-        : 'reveal-hidden';
+          : variant === 'scale' ? 'reveal-scale'
+            : 'reveal-hidden';
       el.classList.add(cls);
       const obs = new IntersectionObserver(
         ([entry]) => { if (entry.isIntersecting) { el.classList.add('reveal-visible'); obs.unobserve(el); } },
@@ -200,27 +200,27 @@ export const HomePage: React.FC<Props> = ({
   };
 
   // reveal refs
-  const heroBadgeRef   = useReveal('hidden');
-  const heroTitleRef   = useReveal('hidden');
-  const heroSubRef     = useReveal('hidden');
-  const heroBannerRef  = useReveal('hidden');
-  const heroCtasRef    = useReveal('hidden');
-  const heroStatsRef   = useReveal('hidden');
-  const howItWorksRef  = useReveal('hidden');
-  const aboutLeftRef   = useReveal('left');
-  const aboutRightRef  = useReveal('right');
-  const videoHdrRef    = useReveal('hidden');
-  const videoLeftRef   = useReveal('left');
-  const videoRightRef  = useReveal('right');
+  const heroBadgeRef = useReveal('hidden');
+  const heroTitleRef = useReveal('hidden');
+  const heroSubRef = useReveal('hidden');
+  const heroBannerRef = useReveal('hidden');
+  const heroCtasRef = useReveal('hidden');
+  const heroStatsRef = useReveal('hidden');
+  const howItWorksRef = useReveal('hidden');
+  const aboutLeftRef = useReveal('left');
+  const aboutRightRef = useReveal('right');
+  const videoHdrRef = useReveal('hidden');
+  const videoLeftRef = useReveal('left');
+  const videoRightRef = useReveal('right');
   const servicesHdrRef = useReveal('hidden');
-  const whyHdrRef      = useReveal('hidden');
-  const galleryHdrRef  = useReveal('hidden');
-  const reviewsHdrRef  = useReveal('hidden');
-  const calcRef        = useReveal('scale');
-  const ambassadorRef  = useReveal('hidden');
+  const whyHdrRef = useReveal('hidden');
+  const galleryHdrRef = useReveal('hidden');
+  const reviewsHdrRef = useReveal('hidden');
+  const calcRef = useReveal('scale');
+  const ambassadorRef = useReveal('hidden');
   const contactLeftRef = useReveal('left');
-  const contactRightRef= useReveal('right');
-  const faqRef         = useReveal('hidden');
+  const contactRightRef = useReveal('right');
+  const faqRef = useReveal('hidden');
 
   // Listen to custom navigation events from Header (e.g. Explore dropdown)
   useEffect(() => {
@@ -253,7 +253,7 @@ export const HomePage: React.FC<Props> = ({
       title: 'Split AC Installation',
       popular: true,
       tagline: 'Professional installation of split AC units with precision bracket mounting & vacuuming',
-      price: '₹1,199',
+      price: '₹1,500',
       duration: '60-90 mins',
       rating: '5.0 ★ (650+)',
       badge: 'Popular Service',
@@ -344,7 +344,7 @@ export const HomePage: React.FC<Props> = ({
       category: 'maintenance',
       title: 'Regular AC Servicing',
       tagline: 'Scheduled AC servicing for maximum cooling efficiency and lower electricity consumption',
-      price: '₹349',
+      price: '₹600',
       duration: '40 mins',
       rating: '4.9 ★ (1,150+)',
       badge: '18-Point Health Checklist',
@@ -626,8 +626,13 @@ export const HomePage: React.FC<Props> = ({
 
   // Calculated Chill Factor
   const tempDiff = Math.max(0, outdoorTemp - targetTemp);
-  const estimatedCoolingTime = Math.round(tempDiff * (selectedTonnage === '2.0' ? 0.8 : selectedTonnage === '1.5' ? 1.0 : 1.3));
-  const estimatedPowerSaving = Math.round(tempDiff * 2.8 + (selectedTonnage === '1.5' ? 18 : 12));
+  const estimatedCoolingTime = Math.max(6, Math.round(tempDiff * (selectedTonnage === '2.0' ? 0.75 : selectedTonnage === '1.5' ? 0.95 : 1.25)));
+  // Power savings: higher target temp (eco-range 24-26°C) + clean coils = maximum savings (~35-40%).
+  // Low temp (16-18°C) = continuous compressor load, lower net savings (~18-23%).
+  const tonnageBonus = selectedTonnage === '2.0' ? 3 : selectedTonnage === '1.5' ? 2 : 0;
+  const ecoBonus = Math.round((targetTemp - 16) * 1.5); // +0% at 16°C up to +15% at 26°C
+  const heatFactor = Math.round(((outdoorTemp - 32) / 12) * 3); // +0% to +3% in peak Chennai heat
+  const estimatedPowerSaving = Math.min(42, Math.max(14, 18 + tonnageBonus + ecoBonus + heatFactor));
 
   // Ambassador Milestone Tier Calculation
   const getMilestoneTier = (count: number) => {
@@ -767,23 +772,23 @@ export const HomePage: React.FC<Props> = ({
 
               {/* Refer & Earn Banner */}
               <div ref={heroBannerRef} style={{ transitionDelay: '240ms' }}>
-              <div className="mt-5 p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-700 flex items-center justify-center shrink-0">
-                    <Sparkles className="w-4 h-4 text-amber-600" />
+                <div className="mt-5 p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-700 flex items-center justify-center shrink-0">
+                      <Sparkles className="w-4 h-4 text-amber-600" />
+                    </div>
+                    <div className="text-xs">
+                      <span className="font-bold text-slate-900">Refer &amp; Earn ₹100: </span>
+                      <span className="text-slate-600">Refer your friends or neighbors for AC service &amp; get ₹100 cash!</span>
+                    </div>
                   </div>
-                  <div className="text-xs">
-                    <span className="font-bold text-slate-900">Refer &amp; Earn ₹100: </span>
-                    <span className="text-slate-600">Refer your friends or neighbors for AC service &amp; get ₹100 cash!</span>
-                  </div>
+                  <button
+                    onClick={currentUser ? onOpenSubmitLead : onOpenRegister}
+                    className="shrink-0 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer whitespace-nowrap"
+                  >
+                    Refer Now
+                  </button>
                 </div>
-                <button
-                  onClick={currentUser ? onOpenSubmitLead : onOpenRegister}
-                  className="shrink-0 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer whitespace-nowrap"
-                >
-                  Refer Now
-                </button>
-              </div>
               </div>
             </div>
 
@@ -1382,11 +1387,10 @@ export const HomePage: React.FC<Props> = ({
               setSelectedCategory('all');
               setSelectedServiceIndex(0);
             }}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              selectedCategory === 'all'
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${selectedCategory === 'all'
                 ? 'bg-sky-600 text-white shadow-xs'
                 : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
-            }`}
+              }`}
           >
             All Services ({allServices.length})
           </button>
@@ -1395,11 +1399,10 @@ export const HomePage: React.FC<Props> = ({
               setSelectedCategory('installation');
               setSelectedServiceIndex(0);
             }}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              selectedCategory === 'installation'
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${selectedCategory === 'installation'
                 ? 'bg-sky-600 text-white shadow-xs'
                 : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
-            }`}
+              }`}
           >
             <Wrench className="w-3.5 h-3.5" />
             AC Installation (4)
@@ -1409,11 +1412,10 @@ export const HomePage: React.FC<Props> = ({
               setSelectedCategory('maintenance');
               setSelectedServiceIndex(0);
             }}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              selectedCategory === 'maintenance'
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${selectedCategory === 'maintenance'
                 ? 'bg-sky-600 text-white shadow-xs'
                 : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
-            }`}
+              }`}
           >
             <Droplets className="w-3.5 h-3.5" />
             AC Maintenance (4)
@@ -1423,11 +1425,10 @@ export const HomePage: React.FC<Props> = ({
               setSelectedCategory('repair');
               setSelectedServiceIndex(0);
             }}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              selectedCategory === 'repair'
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${selectedCategory === 'repair'
                 ? 'bg-sky-600 text-white shadow-xs'
                 : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
-            }`}
+              }`}
           >
             <Cpu className="w-3.5 h-3.5" />
             AC Repair (2)
@@ -1440,11 +1441,10 @@ export const HomePage: React.FC<Props> = ({
             <button
               key={srv.id}
               onClick={() => setSelectedServiceIndex(idx)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
-                selectedServiceIndex === idx
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${selectedServiceIndex === idx
                   ? 'bg-slate-900 text-white shadow-xs'
                   : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
-              }`}
+                }`}
             >
               {getServiceIcon(srv.iconType)}
               <span>{srv.title.split('(')[0].trim()}</span>
@@ -1662,41 +1662,37 @@ export const HomePage: React.FC<Props> = ({
         <div className="flex items-center justify-center gap-2 flex-wrap">
           <button
             onClick={() => setGalleryFilter('all')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              galleryFilter === 'all'
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${galleryFilter === 'all'
                 ? 'bg-sky-600 text-white shadow-xs'
                 : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
-            }`}
+              }`}
           >
             All Work
           </button>
           <button
             onClick={() => setGalleryFilter('installation')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              galleryFilter === 'installation'
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${galleryFilter === 'installation'
                 ? 'bg-sky-600 text-white shadow-xs'
                 : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
-            }`}
+              }`}
           >
             Installation
           </button>
           <button
             onClick={() => setGalleryFilter('jetwash')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              galleryFilter === 'jetwash'
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${galleryFilter === 'jetwash'
                 ? 'bg-sky-600 text-white shadow-xs'
                 : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
-            }`}
+              }`}
           >
             Hydro Jet Wash
           </button>
           <button
             onClick={() => setGalleryFilter('repair')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              galleryFilter === 'repair'
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${galleryFilter === 'repair'
                 ? 'bg-sky-600 text-white shadow-xs'
                 : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
-            }`}
+              }`}
           >
             Gas &amp; PCB Repair
           </button>
@@ -1820,11 +1816,10 @@ export const HomePage: React.FC<Props> = ({
                       key={ton}
                       type="button"
                       onClick={() => setSelectedTonnage(ton)}
-                      className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                        selectedTonnage === ton
+                      className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${selectedTonnage === ton
                           ? 'bg-sky-600 text-white border-sky-600 shadow-xs'
                           : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                      }`}
+                        }`}
                     >
                       {ton} Ton Unit
                     </button>
@@ -2273,9 +2268,8 @@ export const HomePage: React.FC<Props> = ({
                 >
                   <span className="text-xs sm:text-sm font-bold text-slate-900">{faq.q}</span>
                   <ChevronDown
-                    className={`w-4 h-4 text-slate-500 shrink-0 transition-transform duration-200 ${
-                      openFaqIndex === idx ? 'rotate-180 text-sky-600' : ''
-                    }`}
+                    className={`w-4 h-4 text-slate-500 shrink-0 transition-transform duration-200 ${openFaqIndex === idx ? 'rotate-180 text-sky-600' : ''
+                      }`}
                   />
                 </button>
 
