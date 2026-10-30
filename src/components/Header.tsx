@@ -1,5 +1,19 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ChevronDown, PlusCircle, Check, LogIn, Menu, X, Play } from 'lucide-react';
+import {
+  ChevronDown,
+  PlusCircle,
+  LogIn,
+  Menu,
+  X,
+  Play,
+  ShieldCheck,
+  LayoutDashboard,
+  CheckCircle2,
+  CreditCard,
+  Users,
+  FileText,
+  LogOut,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User } from '../types/index.js';
 import { api } from '../services/api.js';
@@ -15,6 +29,8 @@ interface Props {
   onOpenPayoutSetup: () => void;
   onOpenLoginModal: () => void;
   onLogout?: () => void;
+  adminTab?: 'DASHBOARD' | 'PAYOUTS' | 'VERIFICATION' | 'AUDIT_LEDGER' | 'AMBASSADORS' | 'SYSTEM_LOGS';
+  onSelectAdminTab?: (tab: 'DASHBOARD' | 'PAYOUTS' | 'VERIFICATION' | 'AUDIT_LEDGER' | 'AMBASSADORS' | 'SYSTEM_LOGS') => void;
 }
 
 type NavItem = 'home' | 'explore' | 'about' | 'video' | 'services' | 'reviews' | 'gallery' | 'contact' | 'portal';
@@ -28,8 +44,9 @@ export const Header: React.FC<Props> = ({
   onOpenPayoutSetup,
   onOpenLoginModal,
   onLogout,
+  adminTab,
+  onSelectAdminTab,
 }) => {
-  const [demoUsers, setDemoUsers] = useState<User[]>([]);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showExploreDropdown, setShowExploreDropdown] = useState(false);
@@ -52,9 +69,6 @@ export const Header: React.FC<Props> = ({
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const exploreRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    api.getDemoUsers().then(res => setDemoUsers(res.users)).catch(console.error);
-  }, []);
 
   // Scroll-aware header shrink effect
   useEffect(() => {
@@ -154,6 +168,13 @@ export const Header: React.FC<Props> = ({
     setShowExploreDropdown(false);
     setShowMobileMenu(false);
 
+    if (currentUser?.role === 'SUPER_ADMIN') {
+      setActiveNav('portal');
+      onNavigate('PORTAL');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
     if (target === 'portal') {
       setActiveNav('portal');
       onNavigate('PORTAL');
@@ -221,131 +242,136 @@ export const Header: React.FC<Props> = ({
         <div className={`flex items-center justify-between gap-3 sm:gap-6 transition-all duration-300 ${scrolled ? 'h-14' : 'h-16'}`}>
           {/* Zone 1: Brand Wordmark with Coolvengers Logo */}
           <button
-            onClick={() => handleNavClick('home')}
+            onClick={() => handleNavClick(currentUser?.role === 'SUPER_ADMIN' ? 'portal' : 'home')}
             className="flex items-center gap-3 shrink-0 text-left cursor-pointer group focus:outline-hidden"
           >
             <CoolvengersLogo size="md" animated={true} />
+            {currentUser?.role === 'SUPER_ADMIN' && (
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+                Admin Console
+              </span>
+            )}
           </button>
 
           {/* Zone 2: Navigation Links matching coolvengers.in */}
-          <nav className="hidden lg:flex items-center gap-5 text-xs font-semibold text-slate-600">
-            <button
-              onClick={() => handleNavClick('home')}
-              className={getNavClass('home')}
-            >
-              Home
-            </button>
-
-            {/* Explore Dropdown */}
-            <div className="relative" ref={exploreRef}>
+          {currentUser?.role === 'SUPER_ADMIN' ? (
+            <div className="hidden lg:flex items-center gap-2 text-xs font-semibold text-slate-700 bg-slate-100/90 px-3.5 py-1.5 rounded-lg border border-slate-200">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="font-bold text-slate-900">Admin Command Center</span>
+              <span className="text-slate-300">|</span>
+              <span className="text-slate-600">Referrals, Verifications &amp; Payouts</span>
+            </div>
+          ) : (
+            <nav className="hidden lg:flex items-center gap-5 text-xs font-semibold text-slate-600">
               <button
-                onClick={() => setShowExploreDropdown(!showExploreDropdown)}
-                className={`flex items-center gap-1 ${getNavClass('services')}`}
+                onClick={() => handleNavClick('home')}
+                className={getNavClass('home')}
               >
-                <span>Explore</span>
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showExploreDropdown ? 'rotate-180 text-sky-600' : ''}`} />
+                Home
               </button>
 
-              {showExploreDropdown && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8, scale: 0.97 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -8, scale: 0.97 }}
-                  transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                  className="absolute top-full left-0 mt-2 w-56 rounded-2xl bg-white border border-slate-200 shadow-xl py-2 z-50">
-                  <button
-                    onClick={() => handleNavClick('services', 'installation')}
-                    className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 hover:bg-sky-50 hover:text-sky-700 flex items-center justify-between transition-colors cursor-pointer"
-                  >
-                    <span>AC Installation</span>
-                    <span className="text-[10px] font-bold text-sky-600 bg-sky-100/70 px-1.5 py-0.5 rounded">Split & Window</span>
-                  </button>
-                  <button
-                    onClick={() => handleNavClick('services', 'maintenance')}
-                    className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 hover:bg-sky-50 hover:text-sky-700 flex items-center justify-between transition-colors cursor-pointer"
-                  >
-                    <span>AC Maintenance</span>
-                    <span className="text-[10px] font-bold text-sky-600 bg-sky-100/70 px-1.5 py-0.5 rounded">Jet Wash & Gas</span>
-                  </button>
-                  <button
-                    onClick={() => handleNavClick('services', 'repair')}
-                    className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 hover:bg-sky-50 hover:text-sky-700 flex items-center justify-between transition-colors cursor-pointer"
-                  >
-                    <span>AC Repair</span>
-                    <span className="text-[10px] font-bold text-sky-600 bg-sky-100/70 px-1.5 py-0.5 rounded">PCB &amp; Leakage</span>
-                  </button>
-                  <button
-                    onClick={() => handleNavClick('video')}
-                    className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 flex items-center justify-between transition-colors cursor-pointer border-t border-slate-100"
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <Play className="w-2.5 h-2.5 text-emerald-600 fill-emerald-600" />
-                      <span>Watch Field Work Video</span>
-                    </div>
-                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">42s</span>
-                  </button>
-                </motion.div>
-              )}
-            </div>
+              {/* Explore Dropdown */}
+              <div className="relative" ref={exploreRef}>
+                <button
+                  onClick={() => setShowExploreDropdown(!showExploreDropdown)}
+                  className={`flex items-center gap-1 ${getNavClass('services')}`}
+                >
+                  <span>Explore</span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showExploreDropdown ? 'rotate-180 text-sky-600' : ''}`} />
+                </button>
 
-            <button
-              onClick={() => handleNavClick('about')}
-              className={getNavClass('about')}
-            >
-              About Us
-            </button>
+                {showExploreDropdown && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                    transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                    className="absolute top-full left-0 mt-2 w-56 rounded-2xl bg-white border border-slate-200 shadow-xl py-2 z-50">
+                    <button
+                      onClick={() => handleNavClick('services', 'installation')}
+                      className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 hover:bg-sky-50 hover:text-sky-700 flex items-center justify-between transition-colors cursor-pointer"
+                    >
+                      <span>AC Installation</span>
+                      <span className="text-[10px] font-bold text-sky-600 bg-sky-100/70 px-1.5 py-0.5 rounded">Split &amp; Window</span>
+                    </button>
+                    <button
+                      onClick={() => handleNavClick('services', 'maintenance')}
+                      className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 hover:bg-sky-50 hover:text-sky-700 flex items-center justify-between transition-colors cursor-pointer"
+                    >
+                      <span>AC Maintenance</span>
+                      <span className="text-[10px] font-bold text-sky-600 bg-sky-100/70 px-1.5 py-0.5 rounded">Jet Wash &amp; Gas</span>
+                    </button>
+                    <button
+                      onClick={() => handleNavClick('services', 'repair')}
+                      className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 hover:bg-sky-50 hover:text-sky-700 flex items-center justify-between transition-colors cursor-pointer"
+                    >
+                      <span>AC Repair</span>
+                      <span className="text-[10px] font-bold text-sky-600 bg-sky-100/70 px-1.5 py-0.5 rounded">PCB &amp; Leakage</span>
+                    </button>
+                    <button
+                      onClick={() => handleNavClick('video')}
+                      className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 flex items-center justify-between transition-colors cursor-pointer border-t border-slate-100"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <Play className="w-2.5 h-2.5 text-emerald-600 fill-emerald-600" />
+                        <span>Watch Field Work Video</span>
+                      </div>
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">42s</span>
+                    </button>
+                  </motion.div>
+                )}
+              </div>
 
-            <button
-              onClick={() => handleNavClick('video')}
-              className={getNavClass('video')}
-            >
-              <span className="flex items-center gap-1.5">
-                <Play className="w-2.5 h-2.5 fill-emerald-500 text-emerald-500" />
-                Live Video
-              </span>
-            </button>
-
-            <button
-              onClick={() => handleNavClick('reviews')}
-              className={getNavClass('reviews')}
-            >
-              Reviews
-            </button>
-
-            <button
-              onClick={() => handleNavClick('gallery')}
-              className={getNavClass('gallery')}
-            >
-              Gallery
-            </button>
-
-            <button
-              onClick={() => handleNavClick('portal')}
-              className={`flex items-center gap-1.5 ${getNavClass('portal')}`}
-            >
-              <span>{currentUser?.role === 'SUPER_ADMIN' ? 'Admin Console' : 'Ambassador Club'}</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded font-bold border transition-colors ${
-                  activeNav === 'portal'
-                    ? 'bg-sky-600 text-white border-sky-600'
-                    : currentUser?.role === 'SUPER_ADMIN'
-                    ? 'bg-amber-50 text-amber-700 border-amber-200'
-                    : 'bg-sky-50 text-sky-700 border-sky-200'
-                }`}
+              <button
+                onClick={() => handleNavClick('about')}
+                className={getNavClass('about')}
               >
-                {currentUser?.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Earn ₹100'}
-              </span>
-            </button>
+                About Us
+              </button>
 
-            {currentUser?.role !== 'SUPER_ADMIN' && (
+              <button
+                onClick={() => handleNavClick('video')}
+                className={getNavClass('video')}
+              >
+                <span className="flex items-center gap-1.5">
+                  <Play className="w-2.5 h-2.5 fill-emerald-500 text-emerald-500" />
+                  Live Video
+                </span>
+              </button>
+
+              <button
+                onClick={() => handleNavClick('reviews')}
+                className={getNavClass('reviews')}
+              >
+                Reviews
+              </button>
+
+              <button
+                onClick={() => handleNavClick('gallery')}
+                className={getNavClass('gallery')}
+              >
+                Gallery
+              </button>
+
+              <button
+                onClick={() => handleNavClick('portal')}
+                className={`flex items-center gap-1.5 ${getNavClass('portal')}`}
+              >
+                <span>Ambassador Club</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded font-bold border transition-colors bg-sky-50 text-sky-700 border-sky-200">
+                  Earn ₹100
+                </span>
+              </button>
+
               <button
                 onClick={() => handleNavClick('contact')}
                 className="px-3.5 py-1.5 rounded-lg bg-sky-900 hover:bg-sky-800 text-white font-bold text-xs transition-colors cursor-pointer shadow-xs ml-1"
               >
                 Contact Us
               </button>
-            )}
-          </nav>
+            </nav>
+          )}
 
           {/* Zone 3: Actions & User Switcher / Login */}
           <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
@@ -370,13 +396,13 @@ export const Header: React.FC<Props> = ({
                   </button>
                 )}
 
-                {/* View Switcher button if on HOME */}
-                {currentView === 'HOME' && (
+                {/* View Switcher button if on HOME (not for Super Admin) */}
+                {currentView === 'HOME' && currentUser.role !== 'SUPER_ADMIN' && (
                   <button
                     onClick={() => handleNavClick('portal')}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-300 text-xs font-bold shadow-xs transition-colors whitespace-nowrap cursor-pointer"
                   >
-                    {currentUser.role === 'SUPER_ADMIN' ? 'Admin Console' : 'Ambassador Portal'}
+                    Ambassador Portal
                   </button>
                 )}
 
@@ -432,39 +458,6 @@ export const Header: React.FC<Props> = ({
                         )}
                       </div>
 
-                      {/* Switch Account (Demo Selector) */}
-                      <div className="px-4 pt-2.5 pb-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                        Switch User Account
-                      </div>
-                      <div className="max-h-56 overflow-y-auto divide-y divide-slate-100">
-                        {demoUsers.map(u => {
-                          const isActive = currentUser.id === u.id;
-                          return (
-                            <button
-                              key={u.id}
-                              onClick={() => {
-                                api.setUserId(u.id);
-                                onUserChange(u);
-                                setShowUserMenu(false);
-                              }}
-                              className={`w-full text-left px-4 py-2 text-xs flex items-center justify-between transition-colors cursor-pointer ${
-                                isActive
-                                  ? 'bg-sky-50 text-sky-900 font-semibold'
-                                  : 'text-slate-700 hover:bg-slate-50'
-                              }`}
-                            >
-                              <div className="truncate">
-                                <div className="truncate font-medium">{u.name}</div>
-                                <div className="text-[10px] text-slate-500 font-mono">
-                                  {u.ambassadorId} &middot; {getRoleText(u.role)}
-                                </div>
-                              </div>
-                              {isActive && <Check className="w-4 h-4 text-sky-600 shrink-0 ml-2" />}
-                            </button>
-                          );
-                        })}
-                      </div>
-
                       <div className="p-2 border-t border-slate-100 mt-1 flex items-center gap-1.5">
                         <button
                           onClick={() => {
@@ -474,7 +467,7 @@ export const Header: React.FC<Props> = ({
                           className="flex-1 text-center py-1.5 text-xs text-sky-600 hover:bg-slate-50 rounded font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer"
                         >
                           <LogIn className="w-3.5 h-3.5" />
-                          Switch / Sign In
+                          Switch Account
                         </button>
                         {onLogout && (
                           <button
@@ -515,131 +508,260 @@ export const Header: React.FC<Props> = ({
             className="md:hidden border-t border-slate-200 bg-white/98 backdrop-blur-md shadow-lg overflow-hidden"
           >
             <div ref={mobileMenuRef} className="py-3 px-2 space-y-1">
-            <button
-              onClick={() => handleNavClick('home')}
-              className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                activeNav === 'home'
-                  ? 'bg-sky-50 text-sky-600 font-bold border border-sky-100'
-                  : 'text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              <span>Home</span>
-              {activeNav === 'home' && <span className="w-2 h-2 rounded-full bg-sky-600" />}
-            </button>
+            {currentUser?.role === 'SUPER_ADMIN' ? (
+              <div className="space-y-1">
+                <div className="px-3 py-2 mb-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-xs font-bold flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-amber-600" />
+                    <span>Admin Operations Console</span>
+                  </div>
+                  <span className="text-[10px] bg-amber-200/80 px-1.5 py-0.5 rounded text-amber-900 font-mono">
+                    SUPER_ADMIN
+                  </span>
+                </div>
 
-            {/* Explore Section in Mobile */}
-            <div className="py-1 px-1">
-              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
-                Explore Services
-              </div>
-              <div className="grid grid-cols-1 gap-1 pl-2">
                 <button
-                  onClick={() => handleNavClick('services', 'installation')}
-                  className="w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-sky-50 hover:text-sky-700 flex items-center justify-between"
-                >
-                  <span>AC Installation</span>
-                  <span className="text-[10px] text-sky-600 font-mono">Split / Window</span>
-                </button>
-                <button
-                  onClick={() => handleNavClick('services', 'maintenance')}
-                  className="w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-sky-50 hover:text-sky-700 flex items-center justify-between"
-                >
-                  <span>AC Maintenance</span>
-                  <span className="text-[10px] text-sky-600 font-mono">Jet Wash / Gas</span>
-                </button>
-                <button
-                  onClick={() => handleNavClick('services', 'repair')}
-                  className="w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-sky-50 hover:text-sky-700 flex items-center justify-between"
-                >
-                  <span>AC Repair</span>
-                  <span className="text-[10px] text-sky-600 font-mono">PCB / Leakage</span>
-                </button>
-              </div>
-            </div>
-
-            <button
-              onClick={() => handleNavClick('about')}
-              className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                activeNav === 'about'
-                  ? 'bg-sky-50 text-sky-600 font-bold border border-sky-100'
-                  : 'text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              <span>About Us</span>
-              {activeNav === 'about' && <span className="w-2 h-2 rounded-full bg-sky-600" />}
-            </button>
-
-            <button
-              onClick={() => handleNavClick('video')}
-              className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                activeNav === 'video'
-                  ? 'bg-sky-50 text-sky-600 font-bold border border-sky-100'
-                  : 'text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Play className="w-3.5 h-3.5 text-emerald-600 fill-emerald-600" />
-                <span>Live Service Video</span>
-              </div>
-              <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded border border-emerald-100">
-                42s Demo
-              </span>
-            </button>
-
-            <button
-              onClick={() => handleNavClick('reviews')}
-              className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                activeNav === 'reviews'
-                  ? 'bg-sky-50 text-sky-600 font-bold border border-sky-100'
-                  : 'text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              <span>Reviews</span>
-              {activeNav === 'reviews' && <span className="w-2 h-2 rounded-full bg-sky-600" />}
-            </button>
-
-            <button
-              onClick={() => handleNavClick('gallery')}
-              className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                activeNav === 'gallery'
-                  ? 'bg-sky-50 text-sky-600 font-bold border border-sky-100'
-                  : 'text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              <span>Work Gallery</span>
-              {activeNav === 'gallery' && <span className="w-2 h-2 rounded-full bg-sky-600" />}
-            </button>
-
-            <button
-              onClick={() => handleNavClick('portal')}
-              className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                activeNav === 'portal'
-                  ? 'bg-sky-50 text-sky-600 font-bold border border-sky-100'
-                  : 'text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <span>{currentUser?.role === 'SUPER_ADMIN' ? 'Admin Console' : 'Ambassador Club'}</span>
-                <span
-                  className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
-                    currentUser?.role === 'SUPER_ADMIN'
-                      ? 'bg-amber-100 text-amber-800'
-                      : 'bg-sky-100 text-sky-700'
+                  onClick={() => {
+                    onSelectAdminTab?.('DASHBOARD');
+                    setShowMobileMenu(false);
+                  }}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center justify-between cursor-pointer transition-colors ${
+                    adminTab === 'DASHBOARD'
+                      ? 'bg-sky-50 text-sky-700 font-bold border border-sky-200'
+                      : 'text-slate-700 hover:bg-slate-50'
                   }`}
                 >
-                  {currentUser?.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Earn ₹100'}
-                </span>
-              </div>
-              {activeNav === 'portal' && <span className="w-2 h-2 rounded-full bg-sky-600" />}
-            </button>
+                  <div className="flex items-center gap-2">
+                    <LayoutDashboard className="w-4 h-4 text-sky-600" />
+                    <span>Executive Overview</span>
+                  </div>
+                  {adminTab === 'DASHBOARD' && <span className="w-2 h-2 rounded-full bg-sky-600" />}
+                </button>
 
-            {currentUser?.role !== 'SUPER_ADMIN' && (
-              <button
-                onClick={() => handleNavClick('contact')}
-                className="w-full text-center py-2.5 px-3 rounded-lg bg-sky-900 text-white font-bold text-sm shadow-xs cursor-pointer mt-1"
-              >
-                Contact Us / Book Visit
-              </button>
+                <button
+                  onClick={() => {
+                    onSelectAdminTab?.('VERIFICATION');
+                    setShowMobileMenu(false);
+                  }}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center justify-between cursor-pointer transition-colors ${
+                    adminTab === 'VERIFICATION'
+                      ? 'bg-amber-50 text-amber-800 font-bold border border-amber-200'
+                      : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-amber-600" />
+                    <span>Lead Verification &amp; Status</span>
+                  </div>
+                  {adminTab === 'VERIFICATION' && <span className="w-2 h-2 rounded-full bg-amber-600" />}
+                </button>
+
+                <button
+                  onClick={() => {
+                    onSelectAdminTab?.('PAYOUTS');
+                    setShowMobileMenu(false);
+                  }}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center justify-between cursor-pointer transition-colors ${
+                    adminTab === 'PAYOUTS'
+                      ? 'bg-emerald-50 text-emerald-800 font-bold border border-emerald-200'
+                      : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-emerald-600" />
+                    <span>Payout Approvals &amp; Banking</span>
+                  </div>
+                  {adminTab === 'PAYOUTS' && <span className="w-2 h-2 rounded-full bg-emerald-600" />}
+                </button>
+
+                <button
+                  onClick={() => {
+                    onSelectAdminTab?.('AUDIT_LEDGER');
+                    setShowMobileMenu(false);
+                  }}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center justify-between cursor-pointer transition-colors ${
+                    adminTab === 'AUDIT_LEDGER'
+                      ? 'bg-purple-50 text-purple-800 font-bold border border-purple-200'
+                      : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-purple-600" />
+                    <span>Disbursement Ledger</span>
+                  </div>
+                  {adminTab === 'AUDIT_LEDGER' && <span className="w-2 h-2 rounded-full bg-purple-600" />}
+                </button>
+
+                <button
+                  onClick={() => {
+                    onSelectAdminTab?.('AMBASSADORS');
+                    setShowMobileMenu(false);
+                  }}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center justify-between cursor-pointer transition-colors ${
+                    adminTab === 'AMBASSADORS'
+                      ? 'bg-blue-50 text-blue-800 font-bold border border-blue-200'
+                      : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-blue-600" />
+                    <span>Ambassador Directory</span>
+                  </div>
+                  {adminTab === 'AMBASSADORS' && <span className="w-2 h-2 rounded-full bg-blue-600" />}
+                </button>
+
+                <button
+                  onClick={() => {
+                    onSelectAdminTab?.('SYSTEM_LOGS');
+                    setShowMobileMenu(false);
+                  }}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center justify-between cursor-pointer transition-colors ${
+                    adminTab === 'SYSTEM_LOGS'
+                      ? 'bg-indigo-50 text-indigo-800 font-bold border border-indigo-200'
+                      : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-indigo-600" />
+                    <span>Security Audit Logs</span>
+                  </div>
+                  {adminTab === 'SYSTEM_LOGS' && <span className="w-2 h-2 rounded-full bg-indigo-600" />}
+                </button>
+
+                {onLogout && (
+                  <button
+                    onClick={() => {
+                      setShowMobileMenu(false);
+                      onLogout();
+                    }}
+                    className="w-full text-left px-3 py-2.5 mt-2 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2 border-t border-slate-100 cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Sign Out Admin</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={() => handleNavClick('home')}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                    activeNav === 'home'
+                      ? 'bg-sky-50 text-sky-600 font-bold border border-sky-100'
+                      : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <span>Home</span>
+                  {activeNav === 'home' && <span className="w-2 h-2 rounded-full bg-sky-600" />}
+                </button>
+
+                {/* Explore Section in Mobile */}
+                <div className="py-1 px-1">
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
+                    Explore Services
+                  </div>
+                  <div className="grid grid-cols-1 gap-1 pl-2">
+                    <button
+                      onClick={() => handleNavClick('services', 'installation')}
+                      className="w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-sky-50 hover:text-sky-700 flex items-center justify-between"
+                    >
+                      <span>AC Installation</span>
+                      <span className="text-[10px] text-sky-600 font-mono">Split / Window</span>
+                    </button>
+                    <button
+                      onClick={() => handleNavClick('services', 'maintenance')}
+                      className="w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-sky-50 hover:text-sky-700 flex items-center justify-between"
+                    >
+                      <span>AC Maintenance</span>
+                      <span className="text-[10px] text-sky-600 font-mono">Jet Wash / Gas</span>
+                    </button>
+                    <button
+                      onClick={() => handleNavClick('services', 'repair')}
+                      className="w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-sky-50 hover:text-sky-700 flex items-center justify-between"
+                    >
+                      <span>AC Repair</span>
+                      <span className="text-[10px] text-sky-600 font-mono">PCB / Leakage</span>
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => handleNavClick('about')}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                    activeNav === 'about'
+                      ? 'bg-sky-50 text-sky-600 font-bold border border-sky-100'
+                      : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <span>About Us</span>
+                  {activeNav === 'about' && <span className="w-2 h-2 rounded-full bg-sky-600" />}
+                </button>
+
+                <button
+                  onClick={() => handleNavClick('video')}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                    activeNav === 'video'
+                      ? 'bg-sky-50 text-sky-600 font-bold border border-sky-100'
+                      : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Play className="w-3.5 h-3.5 text-emerald-600 fill-emerald-600" />
+                    <span>Live Service Video</span>
+                  </div>
+                  <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded border border-emerald-100">
+                    42s Demo
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => handleNavClick('reviews')}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                    activeNav === 'reviews'
+                      ? 'bg-sky-50 text-sky-600 font-bold border border-sky-100'
+                      : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <span>Reviews</span>
+                  {activeNav === 'reviews' && <span className="w-2 h-2 rounded-full bg-sky-600" />}
+                </button>
+
+                <button
+                  onClick={() => handleNavClick('gallery')}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                    activeNav === 'gallery'
+                      ? 'bg-sky-50 text-sky-600 font-bold border border-sky-100'
+                      : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <span>Work Gallery</span>
+                  {activeNav === 'gallery' && <span className="w-2 h-2 rounded-full bg-sky-600" />}
+                </button>
+
+                <button
+                  onClick={() => handleNavClick('portal')}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                    activeNav === 'portal'
+                      ? 'bg-sky-50 text-sky-600 font-bold border border-sky-100'
+                      : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span>Ambassador Club</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded font-bold bg-sky-100 text-sky-700">
+                      Earn ₹100
+                    </span>
+                  </div>
+                  {activeNav === 'portal' && <span className="w-2 h-2 rounded-full bg-sky-600" />}
+                </button>
+
+                <button
+                  onClick={() => handleNavClick('contact')}
+                  className="w-full text-center py-2.5 px-3 rounded-lg bg-sky-900 text-white font-bold text-sm shadow-xs cursor-pointer mt-1"
+                >
+                  Contact Us / Book Visit
+                </button>
+              </>
             )}
           </div>
           </motion.div>

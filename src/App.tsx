@@ -79,6 +79,11 @@ export default function App() {
       setLoading(true);
       const res = await api.getCurrentUser();
       setCurrentUser(res.user);
+      // Auto-redirect Super Admin directly to admin console
+      if (res.user.role === 'SUPER_ADMIN') {
+        setCurrentView('PORTAL');
+        setAdminTab('DASHBOARD');
+      }
     } catch (err) {
       console.warn('Failed to load user session:', err);
       api.setUserId(null);
@@ -119,30 +124,32 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-sky-500 selection:text-white">
       {/* Top Navbar */}
       <Header
-        currentView={currentView}
-        onNavigate={view => setCurrentView(view)}
+        currentView={currentUser?.role === 'SUPER_ADMIN' ? 'PORTAL' : currentView}
+        onNavigate={view => {
+          if (currentUser?.role === 'SUPER_ADMIN') {
+            setCurrentView('PORTAL');
+          } else {
+            setCurrentView(view);
+          }
+        }}
         currentUser={currentUser}
         onUserChange={handleUserChange}
         onOpenLeadModal={() => setShowSubmitModal(true)}
         onOpenPayoutSetup={() => setShowPayoutSetup(true)}
         onOpenLoginModal={openLogin}
         onLogout={handleLogout}
+        adminTab={adminTab}
+        onSelectAdminTab={tab => setAdminTab(tab)}
       />
 
-      {/* Super Admin Command Navigation Bar (shown when viewing portal as Super Admin) */}
-      {currentView === 'PORTAL' && currentUser && currentUser.role === 'SUPER_ADMIN' && (
+      {/* Super Admin Command Navigation Bar (shown whenever logged in as Super Admin) */}
+      {currentUser && currentUser.role === 'SUPER_ADMIN' && (
         <div className="bg-white border-b border-slate-200/90 shadow-xs">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between py-2 border-b border-slate-100">
               <span className="text-xs font-mono font-bold text-sky-700">
                 SUPER ADMIN COMMAND CENTER &middot; ALL OPERATIONS & PAYOUTS
               </span>
-              <button
-                onClick={() => setCurrentView('HOME')}
-                className="text-xs text-slate-500 hover:text-slate-800 underline cursor-pointer"
-              >
-                &larr; Back to Website Home
-              </button>
             </div>
             <nav className="flex items-center space-x-1 sm:space-x-2 overflow-x-auto py-2">
               <button
@@ -223,7 +230,7 @@ export default function App() {
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {currentView === 'HOME' ? (
+        {currentView === 'HOME' && currentUser?.role !== 'SUPER_ADMIN' ? (
           <HomePage
             currentUser={currentUser}
             onOpenLogin={openLogin}
@@ -235,17 +242,19 @@ export default function App() {
         ) : (
           <>
             {/* View Breadcrumb / Switcher */}
-            <div className="flex items-center justify-between mb-4">
-              <button
-                onClick={() => setCurrentView('HOME')}
-                className="text-xs text-sky-600 hover:text-sky-700 font-semibold flex items-center gap-1 cursor-pointer"
-              >
-                &larr; Back to Coolvengers Home Page
-              </button>
-              <span className="text-xs text-slate-500 font-mono">
-                {currentUser?.role === 'SUPER_ADMIN' ? 'Super Admin Mode' : 'Ambassador Club'}
-              </span>
-            </div>
+            {currentUser?.role !== 'SUPER_ADMIN' && (
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  onClick={() => setCurrentView('HOME')}
+                  className="text-xs text-sky-600 hover:text-sky-700 font-semibold flex items-center gap-1 cursor-pointer"
+                >
+                  &larr; Back to Coolvengers Home Page
+                </button>
+                <span className="text-xs text-slate-500 font-mono">
+                  Ambassador Club
+                </span>
+              </div>
+            )}
 
             {/* Ambassador View */}
             {currentUser?.role === 'AMBASSADOR' && (
@@ -334,155 +343,168 @@ export default function App() {
         )}
       </main>
 
-      {/* Single Unified Official Footer */}
-      <footer className="mt-auto border-t border-slate-200 bg-white pt-10 pb-8 text-xs text-slate-600">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            {/* Col 1: Brand & Logo */}
-            <div className="space-y-3">
-              <CoolvengersLogo size="md" animated={false} />
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                Leading AC service provider in Chennai specializing in installation, maintenance, and repair for split &amp; window air conditioners.
-              </p>
-              <div className="text-[11px] text-slate-500 font-mono">
-                Working Hours: 10:00 AM &ndash; 6:00 PM (Mon-Sat)
+      {/* Single Unified Official Footer — hidden for Super Admin */}
+      {!(currentUser?.role === 'SUPER_ADMIN') && (
+        <footer className="mt-auto border-t border-slate-200 bg-white pt-10 pb-8 text-xs text-slate-600">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+              {/* Col 1: Brand & Logo */}
+              <div className="space-y-3">
+                <CoolvengersLogo size="md" animated={false} />
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Leading AC service provider in Chennai specializing in installation, maintenance, and repair for split &amp; window air conditioners.
+                </p>
+                <div className="text-[11px] text-slate-500 font-mono">
+                  Working Hours: 10:00 AM &ndash; 6:00 PM (Mon-Sat)
+                </div>
+              </div>
+
+              {/* Col 2: Services */}
+              <div className="space-y-2.5">
+                <span className="font-bold text-slate-900 uppercase tracking-wider text-[11px] block">
+                  Services
+                </span>
+                <ul className="space-y-1.5 text-[11px] text-slate-500">
+                  <li>
+                    <a
+                      href="#services"
+                      onClick={() => setCurrentView('HOME')}
+                      className="hover:text-sky-600 transition-colors"
+                    >
+                      AC Installation &amp; Relocation
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="#services"
+                      onClick={() => setCurrentView('HOME')}
+                      className="hover:text-sky-600 transition-colors"
+                    >
+                      AC Deep Cleaning &amp; Jet Pump Wash
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="#services"
+                      onClick={() => setCurrentView('HOME')}
+                      className="hover:text-sky-600 transition-colors"
+                    >
+                      Gas Refilling &amp; Leakage Arrest
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="#services"
+                      onClick={() => setCurrentView('HOME')}
+                      className="hover:text-sky-600 transition-colors"
+                    >
+                      Diagnostics &amp; PCB Repair
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="#services"
+                      onClick={() => setCurrentView('HOME')}
+                      className="hover:text-sky-600 transition-colors"
+                    >
+                      Duct Cleaning &amp; Air Quality
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="#services"
+                      onClick={() => setCurrentView('HOME')}
+                      className="hover:text-sky-600 transition-colors"
+                    >
+                      Annual Maintenance (AMC)
+                    </a>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Col 3: Ambassador Club */}
+              <div className="space-y-2.5">
+                <span className="font-bold text-slate-900 uppercase tracking-wider text-[11px] block">
+                  Ambassador Club
+                </span>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Refer customers who need AC services in Chennai. Earn ₹100 direct cash reward upon verified service completion.
+                </p>
+                <div className="pt-2 flex flex-wrap gap-2">
+                  {currentUser ? (
+                    <button
+                      onClick={() => setCurrentView('PORTAL')}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-[11px] transition-colors cursor-pointer"
+                    >
+                      Go to Dashboard &rarr;
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => {
+                          setCurrentView('PORTAL');
+                          openLogin();
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 font-bold text-[11px] transition-colors cursor-pointer"
+                      >
+                        Ambassador Login &rarr;
+                      </button>
+                      <button
+                        onClick={openRegister}
+                        className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-[11px] transition-colors cursor-pointer shadow-xs"
+                      >
+                        Register (Earn ₹100)
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Col 4: Chennai Contact */}
+              <div className="space-y-2.5">
+                <span className="font-bold text-slate-900 uppercase tracking-wider text-[11px] block">
+                  Chennai Office &amp; Workshop
+                </span>
+                <div className="space-y-2 text-[11px] text-slate-500">
+                  <div className="flex items-start gap-2">
+                    <MapPin className="w-3.5 h-3.5 text-sky-600 shrink-0 mt-0.5" />
+                    <span>Plot No. 14, 2nd Main Road, Madipakkam, Chennai &ndash; 600091</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                    <a
+                      href="tel:+916380873802"
+                      className="font-mono font-medium text-slate-700 hover:text-sky-600 transition-colors"
+                    >
+                      +91 63808 73802 / 91767 73802
+                    </a>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                    <a
+                      href="mailto:gokul@coolvengers.in"
+                      className="font-mono hover:text-sky-600 transition-colors"
+                    >
+                      gokul@coolvengers.in
+                    </a>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Col 2: Services */}
-            <div className="space-y-2.5">
-              <span className="font-bold text-slate-900 uppercase tracking-wider text-[11px] block">
-                Services
-              </span>
-              <ul className="space-y-1.5 text-[11px] text-slate-500">
-                <li>
-                  <a
-                    href="#services"
-                    onClick={() => setCurrentView('HOME')}
-                    className="hover:text-sky-600 transition-colors"
-                  >
-                    AC Installation &amp; Relocation
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#services"
-                    onClick={() => setCurrentView('HOME')}
-                    className="hover:text-sky-600 transition-colors"
-                  >
-                    AC Deep Cleaning &amp; Jet Pump Wash
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#services"
-                    onClick={() => setCurrentView('HOME')}
-                    className="hover:text-sky-600 transition-colors"
-                  >
-                    Gas Refilling &amp; Leakage Arrest
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#services"
-                    onClick={() => setCurrentView('HOME')}
-                    className="hover:text-sky-600 transition-colors"
-                  >
-                    Diagnostics &amp; PCB Repair
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#services"
-                    onClick={() => setCurrentView('HOME')}
-                    className="hover:text-sky-600 transition-colors"
-                  >
-                    Duct Cleaning &amp; Air Quality
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#services"
-                    onClick={() => setCurrentView('HOME')}
-                    className="hover:text-sky-600 transition-colors"
-                  >
-                    Annual Maintenance (AMC)
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            {/* Col 3: Ambassador Club */}
-            <div className="space-y-2.5">
-              <span className="font-bold text-slate-900 uppercase tracking-wider text-[11px] block">
-                Ambassador Club
-              </span>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                Refer customers who need AC services in Chennai. Earn ₹100 direct cash reward upon verified service completion.
-              </p>
-              <div className="pt-2 flex flex-wrap gap-2">
-                <button
-                  onClick={() => {
-                    setCurrentView('PORTAL');
-                    if (!currentUser) openLogin();
-                  }}
-                  className="px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 font-bold text-[11px] transition-colors cursor-pointer"
-                >
-                  Ambassador Login &rarr;
-                </button>
-                <button
-                  onClick={openRegister}
-                  className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-[11px] transition-colors cursor-pointer shadow-xs"
-                >
-                  Register (Earn ₹100)
-                </button>
+            <div className="border-t border-slate-100 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-400">
+              <div>
+                &copy; {new Date().getFullYear()} Coolvengers Aircons. All rights reserved.
               </div>
-            </div>
-
-            {/* Col 4: Chennai Contact */}
-            <div className="space-y-2.5">
-              <span className="font-bold text-slate-900 uppercase tracking-wider text-[11px] block">
-                Chennai Office &amp; Workshop
-              </span>
-              <div className="space-y-2 text-[11px] text-slate-500">
-                <div className="flex items-start gap-2">
-                  <MapPin className="w-3.5 h-3.5 text-sky-600 shrink-0 mt-0.5" />
-                  <span>Plot No. 14, 2nd Main Road, Madipakkam, Chennai &ndash; 600091</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Phone className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-                  <a
-                    href="tel:+916380873802"
-                    className="font-mono font-medium text-slate-700 hover:text-sky-600 transition-colors"
-                  >
-                    +91 63808 73802 / 91767 73802
-                  </a>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Mail className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-                  <a
-                    href="mailto:gokul@coolvengers.in"
-                    className="font-mono hover:text-sky-600 transition-colors"
-                  >
-                    gokul@coolvengers.in
-                  </a>
-                </div>
+              <div className="flex items-center gap-4">
+                <span>Madipakkam &middot; Velachery &middot; OMR &middot; Chennai</span>
+                <span>&bull;</span>
+                <span>Manual Audited Payouts &bull; ₹100 Reward</span>
               </div>
             </div>
           </div>
-
-          <div className="border-t border-slate-100 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-400">
-            <div>
-              &copy; {new Date().getFullYear()} Coolvengers Aircons. All rights reserved.
-            </div>
-            <div className="flex items-center gap-4">
-              <span>Madipakkam &middot; Velachery &middot; OMR &middot; Chennai</span>
-              <span>&bull;</span>
-              <span>Manual Audited Payouts &bull; ₹100 Reward</span>
-            </div>
-          </div>
-        </div>
-      </footer>
+        </footer>
+      )}
 
       {/* Modals */}
       <LeadSubmissionModal

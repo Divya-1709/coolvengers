@@ -1,6 +1,21 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import crypto from 'crypto';
 import { Database } from '../db.js';
 import { User, UserRole } from '../types.js';
+
+// Password hashing utilities using Node.js built-in crypto (scrypt)
+export function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+  return `${salt}:${hash}`;
+}
+
+export function verifyPassword(password: string, storedHash: string): boolean {
+  const [salt, hash] = storedHash.split(':');
+  if (!salt || !hash) return false;
+  const derived = crypto.scryptSync(password, salt, 64).toString('hex');
+  return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(derived, 'hex'));
+}
 
 export const authRouter = Router();
 
@@ -68,31 +83,49 @@ authRouter.get('/demo-users', async (_req: Request, res: Response) => {
 
 // Login
 authRouter.post('/login', async (req: Request, res: Response) => {
-  const { email, role } = req.body;
+  const { email, password } = req.body;
   const db = await Database.get();
 
-  let user = db.users.find(u => u.email.toLowerCase() === String(email).toLowerCase());
-
-  if (!user && role) {
-    user = db.users.find(u => u.role === role);
+  if (!password) {
+    return res.status(400).json({ error: 'Password is required.' });
   }
+
+  const user = db.users.find(u =>
+    u.email.toLowerCase() === String(email).toLowerCase() ||
+    u.ambassadorId?.toLowerCase() === String(email).toLowerCase()
+  );
 
   if (!user) {
-    return res.status(404).json({ error: 'User not found. Try one of the demo accounts or register.' });
+    return res.status(404).json({ error: 'User not found. Please check your credentials or register.' });
   }
 
+  // Verify password
+  if (!user.passwordHash) {
+    return res.status(401).json({ error: 'Account has no password set. Please contact admin.' });
+  }
+
+  if (!verifyPassword(password, user.passwordHash)) {
+    return res.status(401).json({ error: 'Incorrect password. Please try again.' });
+  }
+
+  // Don't send passwordHash to client
+  const { passwordHash, ...safeUser } = user;
   res.json({
     token: user.id,
-    user,
+    user: safeUser,
   });
 });
 
 // Register new ambassador
 authRouter.post('/register', async (req: Request, res: Response) => {
-  const { name, email, phone, payoutMethod, upiId, bankDetails } = req.body;
+  const { name, email, phone, password, payoutMethod, upiId, bankDetails } = req.body;
 
   if (!name || !email || !phone) {
     return res.status(400).json({ error: 'Name, email, and phone are required' });
+  }
+
+  if (!password || password.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
   }
 
   if (payoutMethod === 'UPI' && (!upiId || !upiId.includes('@'))) {
@@ -120,6 +153,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
       email: email.trim().toLowerCase(),
       phone: phone.trim(),
       role: 'AMBASSADOR',
+      passwordHash: hashPassword(password),
       createdAt: new Date().toISOString(),
     };
 

@@ -26,6 +26,32 @@ export interface DatabaseSchema {
 // In-memory state cache
 let dbData: DatabaseSchema | null = null;
 let isWriting = false;
+let neonInitialized = false;
+
+// Dirty-tracking: only write records that actually changed
+const dirtyUsers = new Set<string>();
+const dirtyLeads = new Set<string>();
+const dirtyPayouts = new Set<string>();
+const dirtyNotifications = new Set<string>();
+const dirtyAuditLogs = new Set<string>();
+
+export function markDirty(table: keyof DatabaseSchema, id: string) {
+  switch (table) {
+    case 'users': dirtyUsers.add(id); break;
+    case 'leads': dirtyLeads.add(id); break;
+    case 'payouts': dirtyPayouts.add(id); break;
+    case 'notifications': dirtyNotifications.add(id); break;
+    case 'auditLogs': dirtyAuditLogs.add(id); break;
+  }
+}
+
+function clearDirty() {
+  dirtyUsers.clear();
+  dirtyLeads.clear();
+  dirtyPayouts.clear();
+  dirtyNotifications.clear();
+  dirtyAuditLogs.clear();
+}
 
 // Neon SQL client instance
 let sqlClient: NeonQueryFunction<false, false> | null = null;
@@ -41,7 +67,9 @@ function getNeonClient(): NeonQueryFunction<false, false> | null {
   return sqlClient;
 }
 
-// Seed initial data
+import { hashPassword } from './routes/auth.js';
+
+// Clean initial seed data with Super Admin account only
 const initialUsers: User[] = [
   {
     id: 'user_admin_1',
@@ -50,413 +78,17 @@ const initialUsers: User[] = [
     email: 'admin@coolvengers.com',
     phone: '+91 98450 11223',
     role: 'SUPER_ADMIN',
+    passwordHash: '77353fcc5c8d143c360504c943f1a0cb:13e75478bfcfcbb5b88cfb4c72a2bfc0dcbf08e32d5f7e4d676daeb801187b13decc8812d71fc8c7ebda68351bfb9827605eb0e156d24a025637053e70862fc0',
     createdAt: '2026-08-01T10:00:00Z',
   },
-  {
-    id: 'user_amb_1',
-    ambassadorId: 'CV-AMB-1001',
-    name: 'Rahul Sharma',
-    email: 'rahul.sharma@gmail.com',
-    phone: '+91 98765 43210',
-    role: 'AMBASSADOR',
-    payoutDetails: {
-      method: 'UPI',
-      upiId: 'rahul.sharma@okhdfcbank',
-      updatedAt: '2026-09-01T11:00:00Z',
-    },
-    createdAt: '2026-09-01T10:00:00Z',
-  },
-  {
-    id: 'user_amb_2',
-    ambassadorId: 'CV-AMB-1002',
-    name: 'Priya Patel',
-    email: 'priya.patel@gmail.com',
-    phone: '+91 91234 56780',
-    role: 'AMBASSADOR',
-    payoutDetails: {
-      method: 'BANK_TRANSFER',
-      bankDetails: {
-        accountHolderName: 'Priya Patel',
-        accountNumber: '50100492819283',
-        ifscCode: 'HDFC0000412',
-        bankName: 'HDFC Bank, Indiranagar',
-      },
-      updatedAt: '2026-09-10T14:30:00Z',
-    },
-    createdAt: '2026-09-05T10:00:00Z',
-  },
-  {
-    id: 'user_amb_3',
-    ambassadorId: 'CV-AMB-1003',
-    name: 'Karthik Raja',
-    email: 'karthik.raja@outlook.com',
-    phone: '+91 94432 10987',
-    role: 'AMBASSADOR',
-    payoutDetails: {
-      method: 'UPI',
-      upiId: 'karthikraja@icici',
-      updatedAt: '2026-09-15T09:00:00Z',
-    },
-    createdAt: '2026-09-12T10:00:00Z',
-  },
 ];
 
-const initialPayouts: PayoutRecord[] = [
-  {
-    id: 'pay_hist_1',
-    payoutId: 'CV-PAY-10091',
-    ambassadorId: 'CV-AMB-1001',
-    ambassadorName: 'Rahul Sharma',
-    ambassadorPhone: '+91 98765 43210',
-    payoutMethod: 'UPI',
-    payoutDetailsSnapshot: {
-      upiId: 'rahul.sharma@okhdfcbank',
-    },
-    referralIds: ['CV-REF-1011', 'CV-REF-1012'],
-    referralCount: 2,
-    amountPerReferral: 100,
-    totalAmount: 200,
-    transactionRef: 'UTR-20261002-984210492',
-    paymentDate: '2026-10-02',
-    adminId: 'user_admin_1',
-    adminName: 'Vikramaditya (Super Admin)',
-    adminNotes: 'Batch payout for September completed leads via GPay Business UPI.',
-    status: 'COMPLETED',
-    createdAt: '2026-10-02T15:30:00Z',
-  },
-  {
-    id: 'pay_hist_2',
-    payoutId: 'CV-PAY-10092',
-    ambassadorId: 'CV-AMB-1002',
-    ambassadorName: 'Priya Patel',
-    ambassadorPhone: '+91 91234 56780',
-    payoutMethod: 'BANK_TRANSFER',
-    payoutDetailsSnapshot: {
-      bankDetails: {
-        accountHolderName: 'Priya Patel',
-        accountNumber: '50100492819283',
-        ifscCode: 'HDFC0000412',
-        bankName: 'HDFC Bank, Indiranagar',
-      },
-    },
-    referralIds: ['CV-REF-1013'],
-    referralCount: 1,
-    amountPerReferral: 100,
-    totalAmount: 100,
-    transactionRef: 'IMPS-HDFC-9938218491',
-    paymentDate: '2026-10-05',
-    adminId: 'user_admin_1',
-    adminName: 'Vikramaditya (Super Admin)',
-    adminNotes: 'Corporate net-banking IMPS transfer.',
-    status: 'COMPLETED',
-    createdAt: '2026-10-05T16:00:00Z',
-  },
-];
+const initialPayouts: PayoutRecord[] = [];
 
-const initialLeads: ReferralLead[] = [
-  {
-    id: 'lead_1',
-    referralId: 'CV-REF-1011',
-    ambassadorId: 'CV-AMB-1001',
-    ambassadorName: 'Rahul Sharma',
-    customerName: 'Sanjay Deshmukh',
-    customerPhone: '9845112233',
-    customerLocation: 'Prestige Bella Vista, Porur, Chennai',
-    acServiceType: 'AC Deep Cleaning (Jet Pump)',
-    acUnitsCount: 2,
-    customerNotes: 'Living room AC has foul smell and low airflow.',
-    status: 'Paid',
-    rewardAmount: 100,
-    rewardEligible: true,
-    verifiedByStaffId: 'user_admin_1',
-    verifiedByStaffName: 'Vikramaditya (Super Admin)',
-    verifiedAt: '2026-09-28T14:00:00Z',
-    technicianNotes: 'Jet pump foam wash completed. Airflow restored to 450 CFM.',
-    scheduledDate: '2026-09-28T11:00:00Z',
-    payoutId: 'CV-PAY-10091',
-    paidAt: '2026-10-02T15:30:00Z',
-    createdAt: '2026-09-25T09:15:00Z',
-    updatedAt: '2026-10-02T15:30:00Z',
-  },
-  {
-    id: 'lead_2',
-    referralId: 'CV-REF-1012',
-    ambassadorId: 'CV-AMB-1001',
-    ambassadorName: 'Rahul Sharma',
-    customerName: 'Meenakshi Sundaram',
-    customerPhone: '9900223344',
-    customerLocation: 'Sobha Serene, Porur, Chennai',
-    acServiceType: 'AC Gas Refill & Leak Repair',
-    acUnitsCount: 1,
-    customerNotes: 'Daikin 1.5 Ton AC blowing warm air.',
-    status: 'Paid',
-    rewardAmount: 100,
-    rewardEligible: true,
-    verifiedByStaffId: 'user_admin_1',
-    verifiedByStaffName: 'Vikramaditya (Super Admin)',
-    verifiedAt: '2026-09-30T17:00:00Z',
-    technicianNotes: 'Quarter flare nut leak tightened, nitrogen tested, R32 gas recharged.',
-    scheduledDate: '2026-09-30T15:00:00Z',
-    payoutId: 'CV-PAY-10091',
-    paidAt: '2026-10-02T15:30:00Z',
-    createdAt: '2026-09-27T12:00:00Z',
-    updatedAt: '2026-10-02T15:30:00Z',
-  },
-  {
-    id: 'lead_3',
-    referralId: 'CV-REF-1020',
-    ambassadorId: 'CV-AMB-1001',
-    ambassadorName: 'Rahul Sharma',
-    customerName: 'Aditya Roy',
-    customerPhone: '9731234567',
-    customerLocation: 'Purva Swanlake, OMR, Chennai',
-    acServiceType: 'AC Installation / Relocation',
-    acUnitsCount: 2,
-    customerNotes: 'Shifting to new flat; copper piping already pre-installed.',
-    status: 'Payment Pending',
-    rewardAmount: 100,
-    rewardEligible: true,
-    verifiedByStaffId: 'user_admin_1',
-    verifiedByStaffName: 'Vikramaditya (Super Admin)',
-    verifiedAt: '2026-10-14T16:00:00Z',
-    technicianNotes: 'Installed both Daikin units, vacuumed to 500 microns, tested OK.',
-    scheduledDate: '2026-10-14T10:00:00Z',
-    createdAt: '2026-10-10T14:00:00Z',
-    updatedAt: '2026-10-14T16:00:00Z',
-  },
-  {
-    id: 'lead_4',
-    referralId: 'CV-REF-1021',
-    ambassadorId: 'CV-AMB-1001',
-    ambassadorName: 'Rahul Sharma',
-    customerName: 'Kavitha Nambiar',
-    customerPhone: '9448123456',
-    customerLocation: 'Brigade Residences, WTC, Perungudi, Chennai',
-    acServiceType: 'Annual Maintenance Contract (AMC)',
-    acUnitsCount: 3,
-    customerNotes: 'Looking for 1-year comprehensive AMC for 3 Panasonic ACs.',
-    status: 'Payment Pending',
-    rewardAmount: 100,
-    rewardEligible: true,
-    verifiedByStaffId: 'user_admin_1',
-    verifiedByStaffName: 'Vikramaditya (Super Admin)',
-    verifiedAt: '2026-10-15T11:00:00Z',
-    technicianNotes: 'AMC contract signed and first preventive wet wash done.',
-    scheduledDate: '2026-10-15T09:30:00Z',
-    createdAt: '2026-10-11T16:20:00Z',
-    updatedAt: '2026-10-15T11:00:00Z',
-  },
-  {
-    id: 'lead_5',
-    referralId: 'CV-REF-1022',
-    ambassadorId: 'CV-AMB-1001',
-    ambassadorName: 'Rahul Sharma',
-    customerName: 'Girish Kulkarni',
-    customerPhone: '9845998877',
-    customerLocation: 'Appaswamy Trellis, Vadapalani, Chennai',
-    acServiceType: 'PCB Board Repair / Replacement',
-    acUnitsCount: 1,
-    customerNotes: 'AC turns off after 5 minutes with error code CH 05.',
-    status: 'Service Scheduled',
-    rewardAmount: 100,
-    rewardEligible: false,
-    scheduledDate: '2026-10-16T14:00:00Z',
-    technicianNotes: 'Senior electronics technician allocated with spare inverter PCB.',
-    createdAt: '2026-10-14T10:15:00Z',
-    updatedAt: '2026-10-15T08:00:00Z',
-  },
-  {
-    id: 'lead_6',
-    referralId: 'CV-REF-1023',
-    ambassadorId: 'CV-AMB-1001',
-    ambassadorName: 'Rahul Sharma',
-    customerName: 'Vandana Nair',
-    customerPhone: '9123887766',
-    customerLocation: 'Hiranandani Upscale, Egattur, OMR, Chennai',
-    acServiceType: 'AC Deep Cleaning (Jet Pump)',
-    acUnitsCount: 2,
-    customerNotes: 'Need service this weekend.',
-    status: 'Contacted',
-    rewardAmount: 100,
-    rewardEligible: false,
-    technicianNotes: 'Spoke with client, requested Saturday slot 11 AM.',
-    createdAt: '2026-10-15T18:00:00Z',
-    updatedAt: '2026-10-15T19:30:00Z',
-  },
-  {
-    id: 'lead_7',
-    referralId: 'CV-REF-1013',
-    ambassadorId: 'CV-AMB-1002',
-    ambassadorName: 'Priya Patel',
-    customerName: 'Naveen Jindal',
-    customerPhone: '9880112244',
-    customerLocation: 'Ceebros Boulevard, Thoraipakkam, Chennai',
-    acServiceType: 'AC Deep Cleaning (Jet Pump)',
-    acUnitsCount: 3,
-    status: 'Paid',
-    rewardAmount: 100,
-    rewardEligible: true,
-    verifiedByStaffId: 'user_admin_1',
-    verifiedByStaffName: 'Vikramaditya (Super Admin)',
-    verifiedAt: '2026-10-04T12:00:00Z',
-    payoutId: 'CV-PAY-10092',
-    paidAt: '2026-10-05T16:00:00Z',
-    createdAt: '2026-10-01T10:00:00Z',
-    updatedAt: '2026-10-05T16:00:00Z',
-  },
-  {
-    id: 'lead_8',
-    referralId: 'CV-REF-1031',
-    ambassadorId: 'CV-AMB-1002',
-    ambassadorName: 'Priya Patel',
-    customerName: 'Deepak Chopra',
-    customerPhone: '9945001122',
-    customerLocation: 'Godrej Palm Grove, Koyambedu, Chennai',
-    acServiceType: 'AC Gas Refill & Leak Repair',
-    acUnitsCount: 2,
-    customerNotes: 'Copper pipe brazing and gas top-up.',
-    status: 'Payment Pending',
-    rewardAmount: 100,
-    rewardEligible: true,
-    verifiedByStaffId: 'user_admin_1',
-    verifiedByStaffName: 'Vikramaditya (Super Admin)',
-    verifiedAt: '2026-10-14T14:30:00Z',
-    technicianNotes: 'Service verified completed. Customer rating 5/5.',
-    createdAt: '2026-10-12T11:00:00Z',
-    updatedAt: '2026-10-14T14:30:00Z',
-  },
-  {
-    id: 'lead_9',
-    referralId: 'CV-REF-1032',
-    ambassadorId: 'CV-AMB-1002',
-    ambassadorName: 'Priya Patel',
-    customerName: 'Tanvi Agarwal',
-    customerPhone: '9822334455',
-    customerLocation: 'Dugar Goldstone, Velachery, Chennai',
-    acServiceType: 'AC Not Cooling / General Diagnostics',
-    acUnitsCount: 1,
-    status: 'New Lead',
-    rewardAmount: 100,
-    rewardEligible: false,
-    createdAt: '2026-10-15T21:00:00Z',
-    updatedAt: '2026-10-15T21:00:00Z',
-  },
-  {
-    id: 'lead_10',
-    referralId: 'CV-REF-1033',
-    ambassadorId: 'CV-AMB-1002',
-    ambassadorName: 'Priya Patel',
-    customerName: 'Sunil Gavaskar',
-    customerPhone: '9870001122',
-    customerLocation: 'VGP Shanthi Nagar, Pallikaranai, Chennai',
-    acServiceType: 'AC Installation / Relocation',
-    acUnitsCount: 1,
-    status: 'Rejected',
-    rewardAmount: 100,
-    rewardEligible: false,
-    rejectionReason: 'Customer already had service completed by local technician before visit.',
-    createdAt: '2026-10-08T10:00:00Z',
-    updatedAt: '2026-10-09T14:00:00Z',
-  },
-  {
-    id: 'lead_11',
-    referralId: 'CV-REF-1041',
-    ambassadorId: 'CV-AMB-1003',
-    ambassadorName: 'Karthik Raja',
-    customerName: 'Aishwarya Rajesh',
-    customerPhone: '9988776655',
-    customerLocation: 'Kuberan Nagar 8th Street, Madipakkam, Chennai',
-    acServiceType: 'AC Deep Cleaning (Jet Pump)',
-    acUnitsCount: 3,
-    status: 'Payment Pending',
-    rewardAmount: 100,
-    rewardEligible: true,
-    verifiedByStaffId: 'user_admin_1',
-    verifiedByStaffName: 'Vikramaditya (Super Admin)',
-    verifiedAt: '2026-10-15T12:00:00Z',
-    technicianNotes: '3 Master bedrooms indoor & outdoor jet clean completed.',
-    createdAt: '2026-10-13T09:00:00Z',
-    updatedAt: '2026-10-15T12:00:00Z',
-  },
-];
+const initialLeads: ReferralLead[] = [];
 
-const initialNotifications: Notification[] = [
-  {
-    id: 'notif_1',
-    userId: 'user_amb_1',
-    title: 'Referral Completed & ₹100 Reward Queued!',
-    message: 'Your referral CV-REF-1021 for Kavitha Nambiar was verified completed by Super Admin. ₹100 reward has been added to Payment Pending!',
-    type: 'REWARD_EARNED',
-    referralId: 'CV-REF-1021',
-    isRead: false,
-    createdAt: '2026-10-15T11:00:00Z',
-  },
-  {
-    id: 'notif_2',
-    userId: 'user_amb_1',
-    title: 'Referral Completed & ₹100 Reward Queued!',
-    message: 'Your referral CV-REF-1020 for Aditya Roy was verified completed by Super Admin. ₹100 reward has been added to Payment Pending!',
-    type: 'REWARD_EARNED',
-    referralId: 'CV-REF-1020',
-    isRead: false,
-    createdAt: '2026-10-14T16:00:00Z',
-  },
-  {
-    id: 'notif_3',
-    userId: 'user_amb_1',
-    title: 'Payout Disbursed (₹200)',
-    message: 'Super Admin processed your payout of ₹200 via UPI (UTR-20261002-984210492) for referrals CV-REF-1011 and CV-REF-1012.',
-    type: 'PAYOUT_SENT',
-    payoutId: 'CV-PAY-10091',
-    isRead: true,
-    createdAt: '2026-10-02T15:30:00Z',
-  },
-  {
-    id: 'notif_4',
-    userId: 'user_amb_2',
-    title: 'Referral Completed & ₹100 Reward Queued!',
-    message: 'Your referral CV-REF-1031 for Deepak Chopra was verified completed by Super Admin. ₹100 reward is pending disbursement.',
-    type: 'REWARD_EARNED',
-    referralId: 'CV-REF-1031',
-    isRead: false,
-    createdAt: '2026-10-14T14:30:00Z',
-  },
-  {
-    id: 'notif_5',
-    userId: 'user_amb_3',
-    title: 'Referral Completed & ₹100 Reward Queued!',
-    message: 'Your referral CV-REF-1041 for Aishwarya Rajesh was verified completed by Super Admin. ₹100 reward added to Payment Pending.',
-    type: 'REWARD_EARNED',
-    referralId: 'CV-REF-1041',
-    isRead: false,
-    createdAt: '2026-10-15T12:00:00Z',
-  },
-];
-
-const initialAuditLogs: AuditLog[] = [
-  {
-    id: 'audit_1',
-    actorId: 'user_admin_1',
-    actorName: 'Vikramaditya (Super Admin)',
-    actorRole: 'SUPER_ADMIN',
-    action: 'VERIFY_SERVICE_COMPLETED',
-    entityType: 'REFERRAL',
-    entityId: 'CV-REF-1021',
-    details: 'Verified AC service completion. Awarded ₹100 reward, status set to Payment Pending.',
-    timestamp: '2026-10-15T11:00:00Z',
-  },
-  {
-    id: 'audit_2',
-    actorId: 'user_admin_1',
-    actorName: 'Vikramaditya (Super Admin)',
-    actorRole: 'SUPER_ADMIN',
-    action: 'MANUAL_PAYOUT_RECORDED',
-    entityType: 'PAYOUT',
-    entityId: 'CV-PAY-10091',
-    details: 'Manual UPI payout ₹200 recorded with UTR-20261002-984210492 for Ambassador Rahul Sharma.',
-    timestamp: '2026-10-02T15:30:00Z',
-  },
-];
+const initialNotifications: Notification[] = [];
+const initialAuditLogs: AuditLog[] = [];
 
 // Helper functions to map DB rows to Application models
 function mapUser(row: any): User {
@@ -727,6 +359,19 @@ export class Database {
 
       console.log('✅ [Neon Postgres] Initial seed completed successfully.');
     }
+
+    // Migration: ensure all users have a password hash
+    const usersWithoutPassword = await sql`SELECT id, email, role FROM users WHERE password_hash IS NULL;`;
+    if (usersWithoutPassword.length > 0) {
+      console.log(`🔐 [Neon Postgres] Setting passwords for ${usersWithoutPassword.length} user(s) without password...`);
+      for (const u of usersWithoutPassword) {
+        // Check if this user matches our initial seed data
+        const seedUser = initialUsers.find(su => su.id === u.id);
+        const pwHash = seedUser?.passwordHash || hashPassword('changeme123');
+        await sql`UPDATE users SET password_hash = ${pwHash} WHERE id = ${u.id};`;
+        console.log(`  ✅ Password set for ${u.email} (${u.role})`);
+      }
+    }
   }
 
   // Load from Neon PostgreSQL
@@ -748,11 +393,14 @@ export class Database {
     };
   }
 
-  // Save changes to Neon PostgreSQL
+  // Save changes to Neon PostgreSQL — only dirty records
   private static async saveToNeon(sql: NeonQueryFunction<false, false>, data: DatabaseSchema) {
-    // Upsert users
+    const promises: Promise<any>[] = [];
+
+    // Upsert only dirty users
     for (const u of data.users) {
-      await sql`
+      if (!dirtyUsers.has(u.id)) continue;
+      promises.push(sql`
         INSERT INTO users (id, ambassador_id, name, email, phone, role, password_hash, payout_details, created_at)
         VALUES (${u.id}, ${u.ambassadorId}, ${u.name}, ${u.email}, ${u.phone}, ${u.role}, ${u.passwordHash || null}, ${JSON.stringify(u.payoutDetails || null)}::jsonb, ${u.createdAt})
         ON CONFLICT (id) DO UPDATE SET
@@ -762,12 +410,13 @@ export class Database {
           role = EXCLUDED.role,
           password_hash = EXCLUDED.password_hash,
           payout_details = EXCLUDED.payout_details;
-      `;
+      `);
     }
 
-    // Upsert leads
+    // Upsert only dirty leads
     for (const l of data.leads) {
-      await sql`
+      if (!dirtyLeads.has(l.id)) continue;
+      promises.push(sql`
         INSERT INTO leads (
           id, referral_id, ambassador_id, ambassador_name, customer_name, customer_phone,
           customer_location, ac_service_type, ac_units_count, customer_notes, status,
@@ -801,12 +450,13 @@ export class Database {
           paid_at = EXCLUDED.paid_at,
           rejection_reason = EXCLUDED.rejection_reason,
           updated_at = EXCLUDED.updated_at;
-      `;
+      `);
     }
 
-    // Upsert payouts
+    // Upsert only dirty payouts
     for (const p of data.payouts) {
-      await sql`
+      if (!dirtyPayouts.has(p.id)) continue;
+      promises.push(sql`
         INSERT INTO payouts (
           id, payout_id, ambassador_id, ambassador_name, ambassador_phone,
           payout_method, payout_details_snapshot, referral_ids, referral_count,
@@ -823,37 +473,50 @@ export class Database {
           status = EXCLUDED.status,
           transaction_ref = EXCLUDED.transaction_ref,
           admin_notes = EXCLUDED.admin_notes;
-      `;
+      `);
     }
 
-    // Upsert notifications
+    // Upsert only dirty notifications
     for (const n of data.notifications) {
-      await sql`
+      if (!dirtyNotifications.has(n.id)) continue;
+      promises.push(sql`
         INSERT INTO notifications (id, user_id, title, message, type, referral_id, payout_id, is_read, created_at)
         VALUES (${n.id}, ${n.userId}, ${n.title}, ${n.message}, ${n.type}, ${n.referralId || null}, ${n.payoutId || null}, ${n.isRead}, ${n.createdAt})
         ON CONFLICT (id) DO UPDATE SET
           is_read = EXCLUDED.is_read;
-      `;
+      `);
     }
 
-    // Upsert audit logs
+    // Upsert only dirty audit logs
     for (const a of data.auditLogs) {
-      await sql`
+      if (!dirtyAuditLogs.has(a.id)) continue;
+      promises.push(sql`
         INSERT INTO audit_logs (id, actor_id, actor_name, actor_role, action, entity_type, entity_id, details, timestamp)
         VALUES (${a.id}, ${a.actorId}, ${a.actorName}, ${a.actorRole}, ${a.action}, ${a.entityType}, ${a.entityId}, ${a.details}, ${a.timestamp})
         ON CONFLICT (id) DO NOTHING;
-      `;
+      `);
+    }
+
+    // Run all dirty upserts in parallel
+    if (promises.length > 0) {
+      await Promise.all(promises);
     }
   }
 
   static async init(): Promise<DatabaseSchema> {
+    // Return cached data if already loaded
+    if (dbData && neonInitialized) return dbData;
+
     const neonSql = getNeonClient();
 
     if (neonSql) {
       try {
-        await this.initNeonTables(neonSql);
-        await this.seedNeonIfEmpty(neonSql);
+        if (!neonInitialized) {
+          await this.initNeonTables(neonSql);
+          await this.seedNeonIfEmpty(neonSql);
+        }
         dbData = await this.loadFromNeon(neonSql);
+        neonInitialized = true;
         console.log(`✅ [Neon Postgres] Connected and loaded (${dbData.users.length} users, ${dbData.leads.length} leads).`);
         return dbData;
       } catch (err) {
@@ -892,10 +555,12 @@ export class Database {
 
   static async save() {
     if (!dbData) return;
+    const hasDirty = dirtyUsers.size > 0 || dirtyLeads.size > 0 || dirtyPayouts.size > 0 || dirtyNotifications.size > 0 || dirtyAuditLogs.size > 0;
+
     isWriting = true;
     try {
       const neonSql = getNeonClient();
-      if (neonSql) {
+      if (neonSql && hasDirty) {
         try {
           await this.saveToNeon(neonSql, dbData);
         } catch (err) {
@@ -906,6 +571,7 @@ export class Database {
       // Also persist to local JSON file for backup / offline safety
       await this.ensureDir();
       fs.writeFileSync(DB_FILE, JSON.stringify(dbData, null, 2), 'utf-8');
+      clearDirty();
     } finally {
       isWriting = false;
     }
@@ -917,7 +583,33 @@ export class Database {
   static async withLock<T>(fn: (db: DatabaseSchema) => Promise<T> | T): Promise<T> {
     const nextLock = this.lockPromise.then(async () => {
       const db = await this.init();
+
+      // Snapshot serialized entries before mutation for automatic dirty detection
+      const prevUsers = new Map<string, string>(db.users.map(u => [u.id, JSON.stringify(u)]));
+      const prevLeads = new Map<string, string>(db.leads.map(l => [l.id, JSON.stringify(l)]));
+      const prevPayouts = new Map<string, string>(db.payouts.map(p => [p.id, JSON.stringify(p)]));
+      const prevNotifications = new Map<string, string>(db.notifications.map(n => [n.id, JSON.stringify(n)]));
+      const prevAuditLogs = new Map<string, string>(db.auditLogs.map(a => [a.id, JSON.stringify(a)]));
+
       const res = await fn(db);
+
+      // Detect any added or updated records
+      for (const u of db.users) {
+        if (prevUsers.get(u.id) !== JSON.stringify(u)) dirtyUsers.add(u.id);
+      }
+      for (const l of db.leads) {
+        if (prevLeads.get(l.id) !== JSON.stringify(l)) dirtyLeads.add(l.id);
+      }
+      for (const p of db.payouts) {
+        if (prevPayouts.get(p.id) !== JSON.stringify(p)) dirtyPayouts.add(p.id);
+      }
+      for (const n of db.notifications) {
+        if (prevNotifications.get(n.id) !== JSON.stringify(n)) dirtyNotifications.add(n.id);
+      }
+      for (const a of db.auditLogs) {
+        if (prevAuditLogs.get(a.id) !== JSON.stringify(a)) dirtyAuditLogs.add(a.id);
+      }
+
       await this.save();
       return res;
     });

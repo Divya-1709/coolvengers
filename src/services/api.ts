@@ -85,10 +85,10 @@ class ApiService {
     return this.request<{ users: User[] }>('/api/auth/demo-users');
   }
 
-  async login(email: string, role?: string): Promise<{ token: string; user: User }> {
+  async login(email: string, password: string): Promise<{ token: string; user: User }> {
     return this.request<{ token: string; user: User }>('/api/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, role }),
+      body: JSON.stringify({ email, password }),
     });
   }
 
@@ -96,6 +96,7 @@ class ApiService {
     name: string;
     email: string;
     phone: string;
+    password: string;
     payoutMethod?: PayoutMethodType;
     upiId?: string;
     bankDetails?: BankDetails;
